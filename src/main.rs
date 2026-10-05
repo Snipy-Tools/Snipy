@@ -1,11 +1,21 @@
+mod tray;
+
+use tao::event::Event;
+use tao::event_loop::{ControlFlow, EventLoopBuilder};
+use tray_icon::menu::MenuEvent;
+
 fn main() {
-    let x = 5;
-    let y = 100;
+    let event_loop = EventLoopBuilder::new().build();
 
-    println!("x = {}, y = {}", x, y);
-    println!("x + y = {}", x + y);
+    let (_tray, quit_id) = tray::create();
 
-    for i in y..=x {
-        println!("count = {}", i);
-    }
+    event_loop.run(move |_event: Event<()>, _, control_flow| {
+        *control_flow = ControlFlow::Wait;
+
+        if let Ok(event) = MenuEvent::receiver().try_recv() {
+            if event.id == quit_id {
+                *control_flow = ControlFlow::Exit;
+            }
+        }
+    });
 }

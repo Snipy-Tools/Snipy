@@ -4,3 +4,6 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+resvg = "0.48.1"
+tao = "0.37.1"
+tray-icon = "0.26.0"
