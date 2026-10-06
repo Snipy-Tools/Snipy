@@ -1,4 +1,5 @@
 use crate::popup::Popup;
+use crate::toast::Toast;
 use resvg::{tiny_skia, usvg};
 use tao::event_loop::{ControlFlow, EventLoop};
 use tray_icon::menu::{Menu, MenuEvent, MenuId, MenuItem};
@@ -21,6 +22,7 @@ fn load_icon() -> Icon {
 pub enum UserEvent {
     Tray(TrayIconEvent),
     Menu(MenuEvent),
+    Copied(i32, i32),
 }
 
 pub struct Tray {
@@ -57,7 +59,7 @@ impl Tray {
         }
     }
 
-    pub fn handle_event(&self, event: UserEvent, popup: &mut Popup, control_flow: &mut ControlFlow) {
+    pub fn handle_event(&self, event: UserEvent, popup: &mut Popup, toast: &mut Toast, control_flow: &mut ControlFlow) {
         match event {
             UserEvent::Tray(TrayIconEvent::Click {
                 button: MouseButton::Left,
@@ -65,6 +67,7 @@ impl Tray {
                 ..
             }) => popup.toggle(),
             UserEvent::Menu(e) if e.id == self.quit_id => *control_flow = ControlFlow::Exit,
+            UserEvent::Copied(x, y) => toast.show(x, y),
             _ => {}
         }
     }

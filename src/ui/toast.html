@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+html { font-size: min(14.545vw, 47.06vh); }
+html, body {
+    height: 100%;
+    margin: 0;
+    background: transparent;
+    font-family: "Segoe UI", system-ui, sans-serif;
+    user-select: none;
+    overflow: hidden;
+}
+.pill {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    height: 100%;
+    border-radius: 999px;
+    background: #E8F5F1;
+    color: #16201D;
+    font-size: 0.875rem;
+    font-weight: 600;
+    animation: pop .15s ease-out;
+}
+.pill svg { width: 1rem; height: 1rem; }
+@keyframes pop {
+    from { opacity: 0; transform: scale(.9); }
+    to { opacity: 1; transform: scale(1); }
+}
+</style>
+</head>
+<body>
+<div class="pill" id="pill">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.2 3.2L13 4.8"/></svg>
+    Copied
+</div>
+<script>
+function show() {
+    const pill = document.getElementById("pill");
+    pill.style.animation = "none";
+    pill.offsetWidth;
+    pill.style.animation = "";
+}
+</script>
+</body>
+</html>
