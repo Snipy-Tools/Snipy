@@ -1,5 +1,6 @@
 mod popup;
 mod tray;
+mod selection;
 
 use popup::Popup;
 use tao::event::Event;
@@ -11,6 +12,8 @@ fn main() {
 
     let tray = Tray::new(&event_loop);
     let mut popup = Popup::new(&event_loop);
+
+    let _enabled = selection::start();
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
