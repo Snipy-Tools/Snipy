@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Snipy Shorts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Space+Grotesk:wght@500;700&display=block" rel="stylesheet">
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  canvas { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+           width: min(100vw, 177.78vh); height: min(56.25vw, 100vh); }
+</style>
+</head>
+<body>
+<canvas id="c" width="1920" height="1080"></canvas>
+<script src="lib.js"></script>
+<script>
+const DARK = '#04140f';
+
+function slash(t, at, ang, sep, drawFn) {
+  const sp = E.out3(P(t, at + .1, at + .6)) * sep, nx = -Math.sin(ang), ny = Math.cos(ang);
+  for (const side of [-1, 1]) {
+    ctx.save(); ctx.beginPath();
+    if (side < 0) { ctx.moveTo(-1500, -1500); ctx.lineTo(1500, -1500); ctx.lineTo(1500, 1500 * Math.tan(ang)); ctx.lineTo(-1500, -1500 * Math.tan(ang)); }
+    else { ctx.moveTo(-1500, 1500); ctx.lineTo(1500, 1500); ctx.lineTo(1500, 1500 * Math.tan(ang)); ctx.lineTo(-1500, -1500 * Math.tan(ang)); }
+    ctx.closePath(); ctx.clip(); ctx.translate(side * nx * sp + side * sp * .6, side * ny * sp); drawFn(); ctx.restore();
+  }
+  const cut = P(t, at, at + .12), a = 1 - P(t, at + .12, at + .4);
+  if (a > 0) { ctx.save(); ctx.rotate(ang); ctx.globalAlpha = a; ctx.fillStyle = '#fff'; ctx.fillRect(-900, -3, 1800 * E.out3(cut), 6); ctx.restore(); }
+}
+
+function lockup(t, { tag = "Highlight it. It's copied.", foot = true } = {}) {
+  bg(t, 960, 500, '61,214,176', .16 + .04 * beatPulse(t, .5, 8), .05);
+  const asm = E.out3(P(t, 0, .7));
+  crab({ x: 640, y: 470, s: 1.0, assemble: asm, arm: snip(t, [.75, 1.6], .35) + .05 * beatPulse(t, .5, 8), blink: blinkAt(t, [1.3]), glow: asm >= 1 ? .7 : 0 });
+  const rv = E.io3(P(t, .3, .9));
+  ctx.save(); ctx.beginPath(); ctx.rect(830, 300, 1000 * rv, 260); ctx.clip();
+  glitchTxt('SNIPY', 830 + (1 - rv) * -200, 440, { size: 230, align: 'left', ls: 24 }, 2 + 6 * bump(t, .9, .3));
+  ctx.restore();
+  const tg = E.out3(P(t, .9, 1.3));
+  txt(tag, 838, 600 + (1 - tg) * 30, { size: 50, weight: 500, color: C.teal, align: 'left', alpha: tg });
+  if (!foot) return;
+  const ft = P(t, 1.3, 1.7), items = ['Rust', 'Windows', 'v0.1.0'];
+  ctx.save(); ctx.globalAlpha = ft; let x = 960 - (items.join('').length * 15.6 + 2 * 60) / 2;
+  items.forEach((s, i) => { txt(s, x, 880, { size: 26, font: MONO, weight: 400, color: C.dim, align: 'left' }); x += s.length * 15.6 + 30;
+    if (i < items.length - 1) { ctx.fillStyle = C.teal; ctx.fillRect(x - 4, 876, 8, 8); x += 30; } });
+  ctx.restore();
+}
+
+function appWin(t, at, x, y, title, pre, hit, post) {
+  const u = t - at; if (u < 0) return;
+  const p = E.outBack(clamp(u / .45)), AW = 780, AH = 300;
+  ctx.save(); ctx.translate(x + AW / 2, y + AH / 2 + (1 - p) * 40); ctx.scale(lerp(.82, 1, p), lerp(.82, 1, p)); ctx.translate(-AW / 2, -AH / 2);
+  ctx.globalAlpha = clamp(u / .12);
+  win(0, 0, AW, AH, title, 1);
+  const glow = u >= 1 ? Math.exp(-(u - 1) * 2.5) : 0;
+  if (glow > 0) { ctx.save(); ctx.shadowColor = C.teal; ctx.shadowBlur = 40 * glow; rrect(0, 0, AW, AH, 14, null, `rgba(61,214,176,${glow})`, 3); ctx.restore(); }
+  ctx.font = `400 34px ${MONO}`; const cw = ctx.measureText('M').width, x0 = 44, y0 = 175;
+  const sp = E.io3(P(u, .35, .85));
+  if (sp > 0) { ctx.fillStyle = `rgba(61,214,176,${.3 + .4 * glow})`; ctx.fillRect(x0 + pre.length * cw - 2, y0 - 26, hit.length * sp * cw + 4, 52); }
+  txt(pre + hit + post, x0, y0, { size: 34, font: MONO, weight: 400, align: 'left' });
+  ibeam(x0 + (pre.length + hit.length * sp) * cw, y0, 44, clamp((u - .12) / .1) * (1 - P(u, 1.15, 1.35)));
+  ripple(x0 + pre.length * cw, y0, t, at + .35); ripple(x0 + (pre.length + hit.length) * cw, y0, t, at + .85);
+  if (u >= .9) { const b = E.outBack(P(u, .9, 1.2)); ctx.save(); ctx.translate(AW - 250, 25); ctx.scale(b, b);
+    rrect(-64, -16, 128, 32, 16, C.teal); txt('COPIED ✓', 0, 1, { size: 15, font: MONO, color: DARK }); ctx.restore(); }
+  ctx.restore();
+}
+
+// ---------------------------------------------------------------- TEASER · select 8 s
+const SEL_NOTE = ['# Meeting notes', 'server: 10.0.4.21:8080', 'ticket SNP-2048 is fixed', 'highlight anything'];
+const SEL_COPIES = [{ at: 1.7, land: 2.3, text: '10.0.4.21:8080', line: 1, from: 8, to: 22 },
+                    { at: 3.4, land: 4.0, text: 'SNP-2048', line: 2, from: 7, to: 15 }];
+function teaserSelect(t) {
+  if (t >= 5.5) { lockup(t - 5.5); pixelWipe(t, 5.5, .5, true); return; }
+  const pp = beatPulse(t, .5, 8);
+  bg(t, 960, 600, '61,214,176', .1 + .05 * pp, .06);
+  const WX = 330, WY = 330, WW = 860, WH = 480, TX = 380, TY = 450, LH = 76, FS = 30;
+  ctx.font = `400 ${FS}px ${MONO}`; const cw = ctx.measureText('M').width;
+  const h1 = E.outExpo(P(t, .2, .5)), h2 = E.outExpo(P(t, 2.0, 2.3));
+  const w1 = measure('Highlight it. ', 110), w2 = measure("It's copied.", 110), hx = 960 - (w1 + w2) / 2;
+  txt('Highlight it. ', hx, 150 - (1 - h1) * 40, { size: 110, align: 'left', alpha: h1 });
+  glitchTxt("It's copied.", hx + w1, 150 - (1 - h2) * 40, { size: 110, align: 'left', color: C.teal, alpha: h2 }, 10 * (1 - h2));
+  const L = E.out3(P(t, 0, .5));
+  ctx.save(); ctx.globalAlpha = L; ctx.translate(0, (1 - L) * 80);
+  win(WX, WY, WW, WH, 'meeting-notes.md — Editor', 1);
+  const d1 = P(t, .9, 1.7), sel = [];
+  if (t >= .9 && t < 3.3) sel.push({ l: 1, a: 8, b: 8 + 14 * E.io3(d1) });
+  if (t >= 3.3 && t < 5.2) { const q = E.outExpo(P(t, 3.3, 3.4)); sel.push({ l: 2, a: lerp(11, 7, q), b: lerp(11, 15, q) }); }
+  for (const s of sel) { ctx.fillStyle = 'rgba(61,214,176,.32)'; ctx.fillRect(TX + s.a * cw - 2, TY + s.l * LH - 24, (s.b - s.a) * cw + 4, 48); }
+  SEL_NOTE.forEach((ln, i) => txt(ln, TX, TY + i * LH, { size: FS, font: MONO, weight: 400, color: i === 0 ? C.teal : C.ink, align: 'left' }));
+  ctx.fillStyle = '#0b1015'; ctx.fillRect(WX + 2, WY + WH - 44, WW - 4, 42);
+  txt('● ' + (t < 2.3 ? 'Ready' : t < 4.0 ? 'Copied 14 chars' : 'Copied 8 chars'), WX + 24, WY + WH - 22, { size: 18, font: MONO, weight: 400, color: t < 2.3 ? C.dim : C.teal, align: 'left' });
+  txt('snipy: on', WX + WW - 24, WY + WH - 22, { size: 18, font: MONO, weight: 400, color: C.teal, align: 'right' });
+  const path = [[.5, 1100, 700], [.85, TX + 8 * cw, TY + LH], [.9, TX + 8 * cw, TY + LH], [1.7, TX + 22 * cw, TY + LH],
+                [2.8, TX + 22 * cw, TY + LH], [3.25, TX + 12 * cw, TY + 2 * LH]];
+  let cx = 1100, cy = 700;
+  for (let i = 0; i < path.length - 1; i++) { const [ta, xa, ya] = path[i], [tb, xb, yb] = path[i + 1];
+    if (t >= ta) { const p = E.io3(P(t, ta, tb)); cx = lerp(xa, xb, p); cy = lerp(ya, yb, p); } }
+  [.9, 1.7, 3.3, 3.4].forEach(at => ripple(cx, cy, t, at));
+  ctx.restore();
+
+  const PX = 1260, PY = 330, PW = 340, PH = 480;
+  ctx.save(); ctx.globalAlpha = L; ctx.translate((1 - L) * 120, 0);
+  rrect(PX, PY, PW, PH, 16, 'rgba(14,20,26,.9)', C.line);
+  txt('CLIPBOARD', PX + 26, PY + 40, { size: 20, font: MONO, color: C.dim, align: 'left', ls: 4 });
+  const landed = SEL_COPIES.filter(c => t >= c.land);
+  landed.slice().reverse().forEach((c, idx) => {
+    const age = P(t, c.land, c.land + .35), y = PY + 80 + idx * 108 + (idx === 0 ? (1 - E.outBack(age)) * -30 : 0);
+    ctx.save(); ctx.globalAlpha *= idx === 0 ? clamp(age * 3) : 1;
+    rrect(PX + 18, y, PW - 36, 90, 12, idx === 0 ? 'rgba(61,214,176,.14)' : '#131b22', idx === 0 ? C.teal : C.line, 2);
+    txt(c.text, PX + 38, y + 34, { size: 22, font: MONO, weight: 700, color: C.ink, align: 'left' });
+    txt(idx === 0 ? 'just now' : 'a moment ago', PX + 38, y + 64, { size: 16, font: MONO, weight: 400, color: C.dim, align: 'left' });
+    ctx.restore();
+  });
+  const last = landed[landed.length - 1];
+  if (last) { const b = P(t, last.land, last.land + .8); if (b < 1) {
+    const s = E.outBack(clamp(b * 3)); ctx.save(); ctx.translate(PX + PW - 70, PY + 40); ctx.scale(s, s); ctx.globalAlpha *= 1 - P(b, .7, 1);
+    rrect(-58, -18, 116, 36, 18, C.teal); txt('COPIED ✓', 0, 1, { size: 16, font: MONO, color: DARK }); ctx.restore(); } }
+  ctx.restore();
+
+  for (const c of SEL_COPIES) {
+    const p = P(t, c.at, c.land); if (p <= 0 || p >= 1) continue;
+    const sx = TX + (c.from + c.to) / 2 * cw, sy = TY + c.line * LH, ex = PX + PW / 2, ey = PY + 125, q = E.io3(p);
+    const mx = (sx + ex) / 2, my = Math.min(sy, ey) - 200;
+    const at = k => [(1 - k) ** 2 * sx + 2 * (1 - k) * k * mx + k * k * ex, (1 - k) ** 2 * sy + 2 * (1 - k) * k * my + k * k * ey];
+    const [x, y] = at(q);
+    for (let k = 1; k <= 6; k++) { const [tx, ty] = at(clamp(q - k * .035));
+      ctx.fillStyle = `rgba(61,214,176,${.35 - k * .05})`; ctx.fillRect(tx - 8 + k, ty - 8 + k, 16 - k * 2, 16 - k * 2); }
+    const w = measure(c.text, 24, MONO, 700) + 40, s = lerp(1.1, .85, q) * (1 + .2 * bump(p, 0, .25));
+    ctx.save(); ctx.translate(x, y); ctx.rotate(Math.sin(q * Math.PI) * -.12); ctx.scale(s, s);
+    ctx.shadowColor = C.teal; ctx.shadowBlur = 30; rrect(-w / 2, -26, w, 52, 12, C.teal); ctx.shadowColor = 'transparent';
+    txt(c.text, 0, 1, { size: 24, font: MONO, color: DARK }); ctx.restore();
+  }
+  crab({ x: 1760, y: 700 - 10 * pp, s: .42, arm: snip(t, SEL_COPIES.map(c => c.land), .5, .25) + .08 * pp, blink: blinkAt(t, [1.2, 4.5]), glow: .5, alpha: L });
+  if (t < 5.2) { const beam = cx > TX - 20 && cy > WY + 60; if (beam) ibeam(cx, cy, 40, 1); else arrowCursor(cx, cy, 1.2); }
+  pixelWipe(t, 5.0, .4, false);
+}
+
+// ---------------------------------------------------------------- TEASER · no ctrl+c 6 s
+function teaserCtrlC(t) {
+  if (t >= 3.9) { lockup(t - 3.9, { tag: 'Highlight it. It\'s copied.', foot: false }); pixelWipe(t, 3.9, .45, true); return; }
+  const pp = beatPulse(t, .5, 8);
+  bg(t, 960, 540, t < 2.2 ? '255,79,129' : '61,214,176', .1 + .05 * pp, .06);
+  const kA = at => ({ s: lerp(2, 1, E.outExpo(P(t, at, at + .14))), a: P(t, at, at + .05), pr: bump(t, at + .1, .3) });
+  const k1 = kA(.3), k2 = kA(.6);
+  txt('the old way', 960, 200, { size: 34, font: MONO, weight: 400, color: C.dim, ls: 8, alpha: P(t, .2, .5) * (1 - P(t, 2.1, 2.3)) });
+  const draw = () => {
+    key(700, 540, 480, 260, 'CTRL', k1.pr, { alpha: k1.a, scale: k1.s });
+    txt('+', 1020, 540, { size: 120, color: C.dim, alpha: k2.a });
+    key(1250, 540, 300, 260, 'C', k2.pr, { alpha: k2.a, scale: k2.s, accent: true });
+  };
+  const cutAt = 2.0;
+  if (t < 2.3) {
+    if (t < cutAt) draw();
+    else { ctx.save(); ctx.translate(960, 540); slash(t, cutAt, -.22, 60, () => { ctx.translate(-960, -540); draw(); }); ctx.restore(); }
+  }
+  if (t < 2.6) crab({ x: lerp(-250, 2200, E.io3(P(t, 1.3, 2.5))), y: 800, s: .5, arm: snip(t, [1.95], .6), leg: t * 30, legAmp: 10, glow: .4 });
+  const n1 = E.outExpo(P(t, 2.5, 2.8)), n2 = E.outExpo(P(t, 3.1, 3.4));
+  if (t >= 2.4) {
+    glitchTxt('No Ctrl+C.', 960, 440 - (1 - n1) * 40, { size: 190, alpha: n1 }, 12 * (1 - n1));
+    glitchTxt('Ever.', 960, 650 - (1 - n2) * 40, { size: 190, color: C.teal, alpha: n2 }, 12 * (1 - n2));
+  }
+  ctx.fillStyle = `rgba(255,255,255,${.7 * Math.exp(-Math.max(0, t - 2.0) * 9) * (t > 2.0 && t < 2.8)})`; ctx.fillRect(0, 0, W, H);
+  pixelWipe(t, 3.45, .4, false);
+}
+
+// ---------------------------------------------------------------- TEASER · every app 7 s
+function teaserApps(t) {
+  if (t >= 5.2) { lockup(t - 5.2, { foot: false }); pixelWipe(t, 5.2, .45, true); return; }
+  bg(t, 960, 560, '61,214,176', .1 + .05 * beatPulse(t, .5, 8), .06);
+  const h = E.outExpo(P(t, .2, .55)), w1 = measure('Works in ', 100), w2 = measure('every app.', 100), x0 = 960 - (w1 + w2) / 2;
+  txt('Works in ', x0, 120 - (1 - h) * 40, { size: 100, align: 'left', alpha: h });
+  txt('every app.', x0 + w1, 120 - (1 - h) * 40, { size: 100, align: 'left', color: C.teal, alpha: h });
+  appWin(t, 1.0, 150, 230, 'Browser', 'Tracking: ', '4815 1623 4242', '');
+  appWin(t, 1.7, 990, 230, 'config.ts — Editor', '  apiUrl: "', 'http://localhost', '"');
+  appWin(t, 2.4, 150, 600, 'Chat', 'Meet at ', 'Bahnhofstrasse 12', '?');
+  appWin(t, 3.1, 990, 600, 'Terminal', '$ ssh ', 'deploy@10.0.4.21', '');
+  const chase = i => bump(t, 4.0 + i * .2, .5);
+  [[150, 230], [990, 230], [150, 600], [990, 600]].forEach(([x, y], i) => { const g = chase(i); if (g <= 0) return;
+    ctx.save(); ctx.shadowColor = C.teal; ctx.shadowBlur = 40 * g; rrect(x, y, 780, 300, 14, null, `rgba(61,214,176,${g})`, 3); ctx.restore(); });
+  crab({ x: 960, y: 545, s: .16, arm: snip(t, [1.9, 2.6, 3.3, 4.0], .5, .25), blink: blinkAt(t, [3.7]), glow: .6, alpha: P(t, 1.2, 1.5) });
+  pixelWipe(t, 4.75, .45, false);
+}
+
+// ---------------------------------------------------------------- LAUNCH · out now 5 s
+function launchNow(t) {
+  const flash = Math.exp(-Math.max(0, t - .1) * 8) * (t > .1);
+  bg(t, 960, 540, '61,214,176', .16 + .06 * beatPulse(t, .5, 8), .05);
+  const asm = E.io3(P(t, .1, 1.0));
+  crab({ x: 420, y: 480, s: 1.5, assemble: asm, arm: snip(t, [1.15, 2.8, 3.1], .4), blink: blinkAt(t, [2.2]), glow: asm >= 1 ? .7 : 0 });
+  const s1 = E.outBack(P(t, .9, 1.3)), s2 = E.outBack(P(t, 1.5, 1.9));
+  glitchTxt('SNIPY', 800, 420 + (1 - s1) * 120, { size: 260, align: 'left', color: C.teal, alpha: clamp(s1 * 3), ls: 10 }, 12 * (1 - s1));
+  glitchTxt('IS HERE.', 800, 650 + (1 - s2) * 120, { size: 200, align: 'left', color: C.ink, alpha: clamp(s2 * 3), ls: 4 }, 12 * (1 - s2));
+  const f = E.out3(P(t, 2.3, 2.7));
+  ctx.save(); ctx.globalAlpha = f; ctx.translate(0, (1 - f) * 30);
+  rrect(800, 790, 560, 70, 35, C.teal); txt('WINDOWS  ·  v0.1.0', 1080, 826, { size: 30, font: MONO, color: DARK, ls: 4 });
+  ctx.restore();
+  txt("Highlight it. It's copied.", 800, 930, { size: 44, weight: 500, color: C.dim, align: 'left', alpha: E.out3(P(t, 2.9, 3.3)) });
+  ctx.fillStyle = `rgba(255,255,255,${.9 * flash})`; ctx.fillRect(0, 0, W, H);
+}
+
+// ---------------------------------------------------------------- LAUNCH · announcement 10 s
+function launchAnnounce(t) {
+  bg(t, 960, 480, '61,214,176', .09 + .1 * P(t, 1.5, 3.5) * (1 + beatPulse(t, 1, 3)), .05);
+  const bar = E.out3(P(t, 0, .5));
+  ctx.fillStyle = C.teal; ctx.fillRect(0, 0, W, 90 * bar);
+  txt('NEW ON WINDOWS', 60, 46 * bar, { size: 34, font: MONO, color: DARK, align: 'left', ls: 10 });
+  txt('SNIPY v0.1.0', W - 60, 46 * bar, { size: 34, font: MONO, color: DARK, align: 'right', ls: 10 });
+
+  const asm = E.io3(P(t, 1.0, 3.2)), land = E.outBack(P(t, 3.0, 3.4));
+  const zoom = 1 + .5 * E.inExpo(P(t, 9.2, 10)), fade = 1 - P(t, 9.5, 10);
+  ctx.save(); ctx.translate(960, 500); ctx.scale(zoom, zoom); ctx.translate(-960, -500); ctx.globalAlpha = fade;
+  const sp = P(t, 3.1, 4.2);
+  if (sp > 0 && sp < 1) { ctx.save(); ctx.strokeStyle = C.teal; ctx.globalAlpha *= 1 - sp; ctx.lineWidth = 10 * (1 - sp);
+    ctx.beginPath(); ctx.arc(960, 420, 120 + 1300 * E.out3(sp), 0, 7); ctx.stroke(); ctx.restore(); }
+  crab({ x: 960, y: 420, s: 1.4 + .06 * (1 - land) * (t > 3.0) + .03 * beatPulse(t - 3.2, 1, 6) * (t > 3.6), assemble: asm,
+         arm: snip(t, [3.3, 4.8, 5.05, 8.0], .38), blink: blinkAt(t, [4.2, 7.4]), glow: t > 3.1 ? .6 + .4 * Math.exp(-(t - 3.1) * 2) : 0 });
+  const word = 'SNIPY', size = 200, ls = 34; let total = 0; const ws = [...word].map(ch => { const w = measure(ch, size); total += w + ls; return w; });
+  let x = 960 - (total - ls) / 2;
+  [...word].forEach((ch, i) => { const p = P(t, 3.3 + i * .07, 3.75 + i * .07);
+    glitchTxt(ch, x + ws[i] / 2, 790 + (1 - E.outBack(p)) * 140, { size, align: 'center', alpha: clamp(p * 3) }, 10 * (1 - p) + 2 * beatPulse(t, 1, 8)); x += ws[i] + ls; });
+  ctx.restore();
+  const tag = 'is out now.', n = Math.floor(tag.length * P(t, 5.2, 6.0));
+  if (t < 9.5) txt(tag.slice(0, n), 960, 925, { size: 54, font: MONO, weight: 700, color: C.teal, alpha: P(t, 5.2, 5.3) });
+  const tk = 'HIGHLIGHT IT. IT\'S COPIED.   ◆   NO MORE CTRL+C   ◆   WORKS IN EVERY APP   ◆   ';
+  const tkw = measure(tk, 30, MONO, 700, 6), tbar = E.out3(P(t, 6.5, 7));
+  ctx.fillStyle = '#0b1015'; ctx.fillRect(0, H - 70 * tbar, W, 70); ctx.fillStyle = C.teal; ctx.fillRect(0, H - 70 * tbar, W, 3);
+  for (let k = 0; k < 3; k++) txt(tk, k * tkw - ((t - 6.5) * 220) % tkw, H - 35 * tbar + 6, { size: 30, font: MONO, color: C.ink, align: 'left', ls: 6 });
+}
+
+// ---------------------------------------------------------------- master
+const CLIPS = {
+  'teaser-select': { dur: 8, draw: teaserSelect },
+  'teaser-no-ctrl-c': { dur: 6, draw: teaserCtrlC },
+  'teaser-every-app': { dur: 7, draw: teaserApps },
+  'launch-out-now': { dur: 5, draw: launchNow },
+  'launch-announcement': { dur: 10, draw: launchAnnounce },
+};
+const params = new URLSearchParams(location.search), name = params.get('clip') || 'launch-out-now', clip = CLIPS[name];
+
+function render(T, frame) {
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; ctx.filter = 'none';
+  clip.draw(T);
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1;
+  const v = ctx.createRadialGradient(W / 2, H / 2, H * .35, W / 2, H / 2, H * 1.05);
+  v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,.5)'); ctx.fillStyle = v; ctx.fillRect(0, 0, W, H);
+  ctx.save(); ctx.globalAlpha = .05; ctx.globalCompositeOperation = 'overlay';
+  const r = rng(frame); ctx.translate(-r() * 256, -r() * 256); ctx.fillStyle = ctx.createPattern(GRAIN[frame % 4], 'repeat'); ctx.fillRect(0, 0, W + 256, H + 256); ctx.restore();
+  const fade = Math.max(1 - P(T, 0, .2), P(T, clip.dur - .25, clip.dur));
+  if (fade > 0) { ctx.fillStyle = `rgba(0,0,0,${fade})`; ctx.fillRect(0, 0, W, H); }
+}
+
+const ready = Promise.all([document.fonts.load(`700 100px "Space Grotesk"`), document.fonts.load(`500 100px "Space Grotesk"`),
+  document.fonts.load(`400 30px "JetBrains Mono"`), document.fonts.load(`700 30px "JetBrains Mono"`)]).then(() => document.fonts.ready);
+window.CLIPS = Object.fromEntries(Object.entries(CLIPS).map(([k, v]) => [k, v.dur]));
+window.renderAt = (T, f) => render(T, f);
+window.READY = ready.then(() => true);
+if (!params.has('render')) ready.then(() => { const t0 = performance.now();
+  const loop = () => { render(((performance.now() - t0) / 1000) % clip.dur, Math.floor((performance.now() - t0) / 33)); requestAnimationFrame(loop); }; loop(); });
+</script>
+</body>
+</html>
