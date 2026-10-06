@@ -1,18 +1,29 @@
 use std::sync::{Arc, mpsc};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU8, AtomicUsize, Ordering};
 use std::thread::spawn;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 use rdev::{EventType, Button};
 
-pub fn start() -> Arc<AtomicBool> {
-    let enabled = Arc::new(AtomicBool::new(true));
+pub struct Settings {
+    pub enabled: AtomicBool,
+    pub trigger: AtomicU8,
+    pub min_len: AtomicUsize,
+}
+
+pub fn start() -> Arc<Settings> {
+    let settings = Arc::new(Settings {
+        enabled: AtomicBool::new(true),
+        trigger: AtomicU8::new(0),
+        min_len: AtomicUsize::new(1),
+    });
     let simulating = Arc::new(AtomicBool::new(false));
     let (tx, rx) = mpsc::channel::<()>();
     
-    let enabled_hook = Arc::clone(&enabled);
+    let hook_settings = Arc::clone(&settings);
+    let copy_settings = Arc::clone(&settings);
     let simulating_clone = Arc::clone(&simulating);
-    spawn(move || for _ in rx { copy_selection(&simulating_clone) });
+    spawn(move || for _ in rx { copy_selection(&simulating_clone, &copy_settings) });
 
     spawn(move || { 
         let mut down_pos = (0.0_f64, 0.0_f64);
@@ -25,18 +36,29 @@ pub fn start() -> Arc<AtomicBool> {
                 let dragged = dist(down_pos, pos) > 5.0;
                 let double = last_click.elapsed() < Duration::from_millis(400);
                 last_click = Instant::now();
-                if (dragged || double) && enabled_hook.load(Ordering::Relaxed)&&!simulating.load(Ordering::Relaxed) {
+                let triggered = match hook_settings.trigger.load(Ordering::Relaxed) {
+                    1 => dragged,
+                    2 => double,
+                    _ => dragged || double,
+                };
+                if triggered && hook_settings.enabled.load(Ordering::Relaxed) && !simulating.load(Ordering::Relaxed) {
                     tx.send(()).ok();
                 }
             }
             _ => {}
         }).expect("listen failed");
     });
-    enabled
+    settings
 }
 
 
-fn copy_selection(simulating: &Arc<AtomicBool>) {
+fn clipboard_text() -> Option<String> {
+    arboard::Clipboard::new().ok()?.get_text().ok()
+}
+
+fn copy_selection(simulating: &Arc<AtomicBool>, settings: &Settings) {
+    let min_len = settings.min_len.load(Ordering::Relaxed);
+    let before = if min_len > 1 { clipboard_text() } else { None };
     simulating.store(true, Ordering::Relaxed);
     sleep(Duration::from_millis(50));
     rdev::simulate(&EventType::KeyPress(rdev::Key::ControlLeft)).ok();
@@ -50,15 +72,11 @@ fn copy_selection(simulating: &Arc<AtomicBool>) {
     simulating.store(false, Ordering::Relaxed);
     sleep(Duration::from_millis(80));
     
-    arboard::Clipboard::new().and_then(|mut clipboard| {
-            clipboard.get_text().map(|text| {
-                println!("Clipboard text: {}", text);
-            })
-        }).ok();
-        
-        
-        
-        simulating.store(false, Ordering::Relaxed);
+    if let Some(before) = before {
+        if clipboard_text().is_some_and(|t| t.chars().count() < min_len) {
+            arboard::Clipboard::new().and_then(|mut c| c.set_text(before)).ok();
+        }
+    }
 }
 
 fn dist(a: (f64, f64), b: (f64, f64)) -> f64 {

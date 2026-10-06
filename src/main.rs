@@ -11,9 +11,8 @@ fn main() {
     let event_loop = EventLoopBuilder::<UserEvent>::with_user_event().build();
 
     let tray = Tray::new(&event_loop);
-    let mut popup = Popup::new(&event_loop);
-
-    let _enabled = selection::start();
+    let settings = selection::start();
+    let mut popup = Popup::new(&event_loop, settings);
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
