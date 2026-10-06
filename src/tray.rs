@@ -18,9 +18,7 @@ fn load_icon() -> Icon {
 
 pub fn create() -> (TrayIcon, MenuId) {
     let quit = MenuItem::new("Quit", true, None);
-    let settings = MenuItem::new("Settings", true, None);
     let menu = Menu::new();
-    menu.append(&settings).expect("menu settings faild to build");
     menu.append(&quit).expect("menu quit faild to build");
 
     let tray = TrayIconBuilder::new()
