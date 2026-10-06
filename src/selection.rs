@@ -64,8 +64,6 @@ fn copy_selection(simulating: &Arc<AtomicBool>) {
             })
         }).ok();
         
-        
-        
         simulating.store(false, Ordering::Relaxed);
 }
 
