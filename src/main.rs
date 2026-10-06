@@ -1,4 +1,5 @@
 mod tray;
+mod selection;
 
 use tao::event::Event;
 use tao::event_loop::{ControlFlow, EventLoopBuilder};
@@ -8,6 +9,8 @@ fn main() {
     let event_loop = EventLoopBuilder::new().build();
 
     let (_tray, quit_id) = tray::create();
+
+    let _enabled = selection::start();
 
     event_loop.run(move |_event: Event<()>, _, control_flow| {
         *control_flow = ControlFlow::Wait;
