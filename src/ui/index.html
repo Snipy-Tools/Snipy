@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+:root {
+    --bg: #16201D;
+    --row: #1E2B27;
+    --line: #223029;
+    --text: #E8F5F1;
+    --muted: #8FA39C;
+    --accent: #3DD6B0;
+}
+* { box-sizing: border-box; }
+html { font-size: min(4.444vw, 6.4vh); }
+html, body {
+    height: 100%;
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Segoe UI", system-ui, sans-serif;
+    user-select: none;
+    overflow: hidden;
+}
+[hidden] { display: none !important; }
+.popup {
+    height: 100%;
+    border: 1px solid var(--line);
+}
+.page {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+header {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    padding: 1.25rem 1.375rem;
+    border-bottom: 1px solid var(--line);
+}
+header img { width: 2.5rem; height: 2.5rem; }
+.title { flex: 1; }
+h1 { margin: 0; font-size: 1.5rem; line-height: 1.1; }
+.status { margin-top: 0.25rem; font-family: Consolas, monospace; font-size: 0.8125rem; color: var(--muted); }
+.switch {
+    position: relative;
+    width: 3.25rem;
+    height: 1.75rem;
+    border-radius: 0.875rem;
+    background: var(--line);
+    border: 0;
+    cursor: pointer;
+    padding: 0;
+}
+.switch::after {
+    content: "";
+    position: absolute;
+    top: 0.25rem;
+    left: 0.25rem;
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 50%;
+    background: var(--text);
+    transition: left .15s;
+}
+.switch.on { background: var(--accent); }
+.switch.on::after { left: 1.75rem; background: var(--bg); }
+footer {
+    margin-top: auto;
+    flex: none;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 0.75rem 1.375rem;
+}
+footer button {
+    background: none;
+    border: 0;
+    border-radius: 0.375rem;
+    color: var(--text);
+    font-size: 0.875rem;
+    padding: 0.625rem 0.875rem;
+    cursor: pointer;
+    font-family: inherit;
+}
+footer .quit { color: var(--muted); }
+footer button:hover { background: var(--row); }
+footer .quit:hover { color: var(--text); }
+footer button:active { opacity: .7; }
+.switch:hover { filter: brightness(1.15); }
+footer button, .switch { transition: background .12s, color .12s; }
+.setting {
+    flex: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1.375rem;
+    border-bottom: 1px solid var(--line);
+    font-size: 0.9375rem;
+}
+select {
+    color-scheme: dark;
+    background: #111917;
+    color: var(--text);
+    border: 1px solid var(--line);
+    border-radius: 0.375rem;
+    padding: 0.4375rem 0.625rem;
+    font-family: inherit;
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+select:hover { border-color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="popup">
+<section class="page">
+    <header>
+        <img src="{{LOGO}}" alt="Snipy Icon">
+        <div class="title">
+            <h1>Snipy</h1>
+            <div class="status" id="status"></div>
+        </div>
+        <button class="switch" id="toggle" aria-label="Toggle auto-copy"></button>
+    </header>
+    <label class="setting">Trigger
+        <select id="trigger">
+            <option value="0">Drag or double-click</option>
+            <option value="1">Drag</option>
+            <option value="2">Double-click</option>
+        </select>
+    </label>
+    <label class="setting">Minimum length
+        <select id="minlen">
+            <option value="1">1 character</option>
+            <option value="2">2 characters</option>
+            <option value="3">3 characters</option>
+            <option value="5">5 characters</option>
+        </select>
+    </label>
+    <footer>
+        <button class="quit" id="quit">Quit</button>
+    </footer>
+</section>
+</div>
+
+<script>
+const toggle = document.getElementById("toggle");
+const status = document.getElementById("status");
+const send = (msg) => window.ipc.postMessage(msg);
+
+const trigger = document.getElementById("trigger");
+const minlen = document.getElementById("minlen");
+
+function render(state) {
+    toggle.classList.toggle("on", state.enabled);
+    status.textContent = "auto-copy is " + (state.enabled ? "on" : "off");
+    trigger.value = state.trigger;
+    minlen.value = state.minlen;
+}
+
+toggle.addEventListener("click", () => {
+    const enabled = !toggle.classList.contains("on");
+    send("enabled:" + enabled);
+    toggle.classList.toggle("on", enabled);
+    status.textContent = "auto-copy is " + (enabled ? "on" : "off");
+});
+trigger.addEventListener("change", () => send("trigger:" + trigger.value));
+minlen.addEventListener("change", () => send("minlen:" + minlen.value));
+document.getElementById("quit").addEventListener("click", () => send("quit"));
+render({ enabled: true, trigger: 0, minlen: 1 });
+</script>
+</body>
+</html>
