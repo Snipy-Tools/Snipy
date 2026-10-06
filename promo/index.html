@@ -22,8 +22,8 @@
 <div id="play"><span>▶ PLAY</span></div>
 <audio id="music" src="music.wav" preload="auto"></audio>
 <script>
-const W = 1920, H = 1080, DUR = 52;
-const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const W = 1920, H = 1080, DUR = 48;
+const cv = document.getElementById('c'), mainCtx = cv.getContext('2d'); let ctx = mainCtx;
 const buf = document.createElement('canvas'); buf.width = W; buf.height = H; const bctx = buf.getContext('2d');
 const C = { bg: '#06080B', teal: '#3DD6B0', tealD: '#1E8C72', pink: '#FF4F81', amber: '#FFC857', blue: '#7AA2F7',
             ink: '#E8F1EE', dim: '#7C8A90', panel: '#0E141A', line: '#1F2A33' };
@@ -172,8 +172,8 @@ const GRAIN = [0, 1, 2, 3].map(k => { const c = document.createElement('canvas')
   const g = c.getContext('2d'), d = g.createImageData(256, 256), r = rng(100 + k);
   for (let i = 0; i < d.data.length; i += 4) { const v = r() * 255; d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = 255; }
   g.putImageData(d, 0, 0); return c; });
-const IMPACTS = [[3, 16], [7.6, 9], [7.85, 9], [12, 10], [14, 24], [17.15, 4], [26, 12], [36, 8], [44, 22], [45, 22], [45.3, 14], [46, 22], [47, 12]];
-const FLASHES = [[3, .45, '61,214,176'], [14, 1, '255,255,255'], [26, .35, '61,214,176'], [36, .25, '255,255,255'], [44, .7, '255,255,255'], [46, .5, '255,255,255'], [47, .4, '61,214,176']];
+const IMPACTS = [[3, 16], [7.6, 9], [7.85, 9], [8.5, 4], [9, 4], [9.5, 5], [10, 5], [10.5, 6], [11, 7], [11.5, 8], [12, 10], [14, 24], [17.15, 4], [26.3, 3], [27.8, 3], [29.3, 3], [30.8, 3], [40, 22], [41, 22], [41.3, 14], [42, 22], [43, 12]];
+const FLASHES = [[3, .45, '61,214,176'], [14, 1, '255,255,255'], [40, .9, '255,255,255'], [42, .5, '255,255,255'], [43, .4, '61,214,176']];
 function shake(T) {
   let x = 0, y = 0;
   for (const [at, a] of IMPACTS) { const d = T - at; if (d < 0 || d > .6) continue;
@@ -189,7 +189,7 @@ function post(T, frame) {
   ctx.save(); ctx.globalAlpha = .055; ctx.globalCompositeOperation = 'overlay';
   const pat = ctx.createPattern(GRAIN[frame % 4], 'repeat'); const r = rng(frame);
   ctx.translate(-r() * 256, -r() * 256); ctx.fillStyle = pat; ctx.fillRect(0, 0, W + 256, H + 256); ctx.restore();
-  const fade = Math.max(1 - P(T, 0, .35), P(T, 51.1, 51.9));
+  const fade = Math.max(1 - P(T, 0, .35), P(T, 47.1, 47.9));
   if (fade > 0) { ctx.fillStyle = `rgba(0,0,0,${fade})`; ctx.fillRect(0, 0, W, H); }
 }
 
@@ -238,50 +238,85 @@ function s1(t) {
 // SCENE 2 · 6–14 · the old way: Ctrl+C forever
 // =====================================================================
 const OLD = ['The API key is in the wiki, under Setup.', 'Deploy target: prod-eu-west-2', 'Copy this. Paste it there. Copy that...', '...and repeat. Forever.'];
+const CHAOS_BEATS = [8.5, 9, 9.5, 10, 10.5, 11, 11.5];
 const TILES = (() => { const r = rng(5), out = []; let n = 0;
-  [8.5, 9, 9.5, 10, 10.5, 11, 11.5].forEach((bt, k) => { const cnt = 2 ** (k + 1);
-    for (let i = n; i < cnt; i++) out.push({ at: bt + (i - n) / (cnt - n) * .18, x: r() * W, y: 60 + r() * (H - 120), rot: (r() - .5) * .7, s: .45 + r() * .55, accent: r() < .18 });
+  CHAOS_BEATS.forEach((bt, k) => { const cnt = 2 ** (k + 1);
+    for (let i = n; i < cnt; i++) {
+      const z = r() < .45 ? 0 : r() < .7 ? 1 : 2;
+      let x, y; do { x = r() * W; y = 40 + r() * (H - 80); } while (z === 2 && x > 380 && x < 1540 && y > 300 && y < 780);
+      const dx = x - 960, dy = y - 540, d = Math.hypot(dx, dy) || 1, sp = 14 + z * 22;
+      out.push({ at: bt + (i - n) / (cnt - n) * .22, x, y, z, vx: dx / d * sp, vy: dy / d * sp, rot: (r() - .5) * .8, vr: (r() - .5) * .3,
+                 s: [.36 + r() * .16, .58 + r() * .24, 1.05 + r() * .4][z], accent: r() < .2 });
+    }
     n = cnt; });
-  return out; })();
+  return out.sort((a, b) => a.s - b.s); })();
+function drawTile(tl, t) {
+  const u = t - tl.at, p = E.outExpo(P(t, tl.at, tl.at + .18)), pr = bump(t, tl.at + .1, .22), a = P(t, tl.at, tl.at + .05), s = tl.s * lerp(1.7, 1, p);
+  ctx.save(); ctx.translate(tl.x + tl.vx * u, tl.y + tl.vy * u); ctx.rotate(tl.rot + tl.vr * u); ctx.scale(s, s);
+  key(-90, 0, 170, 100, 'CTRL', pr, { alpha: a }); key(70, 0, 100, 100, 'C', pr, { alpha: a, accent: tl.accent });
+  ctx.restore();
+}
+function tileLayer(t, z, blur, bright) {
+  const list = TILES.filter(tl => tl.z === z && t >= tl.at); if (!list.length) return;
+  const m = ctx.getTransform();
+  bctx.setTransform(1, 0, 0, 1, 0, 0); bctx.clearRect(0, 0, W, H);
+  ctx = bctx; ctx.setTransform(m); for (const tl of list) drawTile(tl, t); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx = mainCtx;
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.filter = `blur(${blur}px) brightness(${bright})`; ctx.drawImage(buf, 0, 0); ctx.filter = 'none'; ctx.restore();
+}
 function s2(t) {
-  bg(t, 960, 540, '255,79,129', .07 + .1 * P(t, 8.5, 12), .05);
+  bg(t, 960, 540, '255,79,129', .06 + .1 * P(t, 8.5, 12), .05);
+  const push = 1 + .07 * E.io3(P(t, 8.4, 12));
+  ctx.save(); ctx.translate(960, 540); ctx.scale(push, push); ctx.translate(-960, -540);
   const ws = E.out3(P(t, 6, 6.5));
-  txt('// THE OLD WAY', 120, 100, { size: 26, font: MONO, weight: 700, color: C.pink, align: 'left', ls: 6, alpha: P(t, 6.1, 6.4) });
   ctx.save(); ctx.translate(960, 430); ctx.scale(.92 + .08 * ws, .92 + .08 * ws); ctx.translate(-960, -430);
   win(460, 210, 1000, 420, 'notes.txt — Notepad', ws);
   ctx.font = `400 30px ${MONO}`; const cw = ctx.measureText('M').width, x0 = 510, y0 = 320, lh = 72;
   const selP = P(t, 6.6, 7.3), sFrom = 15, sTo = 15 + 14 * E.io3(selP);
   if (selP > 0) { ctx.fillStyle = 'rgba(122,162,247,.45)'; ctx.fillRect(x0 + sFrom * cw, y0 + lh - 22, (sTo - sFrom) * cw, 46); }
   OLD.forEach((l, i) => txt(l, x0, y0 + i * lh, { size: 30, font: MONO, weight: 400, color: i === 3 ? C.dim : C.ink, align: 'left', alpha: ws }));
-  // cursor
   let cx, cy; if (t < 6.6) { const p = E.io3(P(t, 6.2, 6.55)); cx = lerp(1300, x0 + sFrom * cw, p); cy = lerp(600, y0 + lh, p); }
   else { cx = x0 + sTo * cw; cy = y0 + lh; }
   if (t < 8.6) ibeam(cx, cy, 40, ws);
   ripple(cx, cy, t, 6.6, C.blue); ripple(cx, cy, t, 7.3, C.blue);
   ctx.restore();
-  // the two keys
   const kA = (at) => ({ s: lerp(2, 1, E.outExpo(P(t, at, at + .14))), a: P(t, at, at + .05), pr: bump(t, at + .1, .3) });
   const k1 = kA(7.6), k2 = kA(7.85);
   key(830, 800, 250, 130, 'CTRL', k1.pr, { alpha: k1.a, scale: k1.s });
   txt('+', 1010, 800, { size: 70, color: C.dim, alpha: k2.a });
   key(1110, 800, 140, 130, 'C', k2.pr, { alpha: k2.a, scale: k2.s, accent: true });
-  // multiplication chaos
-  for (const tl of TILES) {
-    if (t < tl.at) continue; const p = E.outExpo(P(t, tl.at, tl.at + .15)), pr = bump(t, tl.at + .08, .2);
-    ctx.save(); ctx.translate(tl.x, tl.y); ctx.rotate(tl.rot); ctx.scale(tl.s * lerp(1.8, 1, p), tl.s * lerp(1.8, 1, p));
-    key(-90, 0, 170, 100, 'CTRL', pr, { alpha: P(t, tl.at, tl.at + .04) }); key(70, 0, 100, 100, 'C', pr, { alpha: P(t, tl.at, tl.at + .04), accent: tl.accent });
+
+  // ---- chaos: three depth layers + frosted counter card
+  const chaos = P(t, 8.5, 10.5);
+  if (chaos > 0) { ctx.fillStyle = `rgba(6,8,11,${.6 * chaos})`; ctx.fillRect(-60, -60, W + 120, H + 120); }
+  tileLayer(t, 0, 6, .4);
+  tileLayer(t, 1, 1.8, .72);
+  const k = CHAOS_BEATS.filter(b => t >= b).length;
+  if (k > 0 && t < 12) {
+    const lastBeat = CHAOS_BEATS[k - 1], hit = Math.exp(-(t - lastBeat) * 9), inf = t >= 11.75;
+    const cardP = E.outBack(P(t, 8.5, 8.85)), cs = cardP * (1 + .025 * hit);
+    bctx.setTransform(1, 0, 0, 1, 0, 0); bctx.clearRect(0, 0, W, H); bctx.drawImage(cv, 0, 0);
+    ctx.save(); ctx.translate(960, 540); ctx.scale(cs, cs);
+    const CWD = 860, CHT = 340;
+    ctx.save(); ctx.beginPath(); ctx.roundRect(-CWD / 2, -CHT / 2, CWD, CHT, 30); ctx.clip();
+    const m = ctx.getTransform(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.filter = 'blur(24px) brightness(.45)'; ctx.drawImage(buf, 0, 0); ctx.filter = 'none'; ctx.setTransform(m);
+    ctx.fillStyle = 'rgba(10,13,17,.5)'; ctx.fillRect(-CWD / 2, -CHT / 2, CWD, CHT);
+    const sheen = ctx.createLinearGradient(0, -CHT / 2, 0, CHT / 2); sheen.addColorStop(0, 'rgba(255,255,255,.07)'); sheen.addColorStop(.5, 'rgba(255,255,255,0)');
+    ctx.fillStyle = sheen; ctx.fillRect(-CWD / 2, -CHT / 2, CWD, CHT);
+    ctx.restore();
+    rrect(-CWD / 2, -CHT / 2, CWD, CHT, 30, null, inf ? 'rgba(255,79,129,.8)' : `rgba(255,255,255,${.1 + .25 * hit})`, 2);
+    txt('CTRL + C', 0, -108, { size: 28, font: MONO, color: inf ? C.pink : C.teal, ls: 12 });
+    ctx.save(); const ns = 1 + .12 * hit; ctx.scale(ns, ns);
+    glitchTxt(inf ? '×∞' : '×' + 2 ** k, 0, 18, { size: 200 }, 14 * Math.exp(-(t - lastBeat) * 22));
+    ctx.restore();
+    txt(inf ? 'this is getting out of hand.' : 'and counting.', 0, 124, { size: 24, font: MONO, weight: 400, color: C.dim });
     ctx.restore();
   }
-  const k = [8.5, 9, 9.5, 10, 10.5, 11, 11.5].filter(b => t >= b).length;
-  if (k > 0 && t < 12) {
-    const label = t >= 11.75 ? '×∞' : '×' + (2 ** k).toLocaleString('en');
-    const pp = beatPulse(t - 8.5, .5, 10);
-    ctx.save(); ctx.fillStyle = 'rgba(6,8,11,.75)'; ctx.fillRect(0, 440, W, 200); ctx.restore();
-    glitchTxt('Ctrl + C  ' + label, 960, 540, { size: 130 + 20 * pp, color: C.ink }, 4 + 14 * pp * (k / 7));
-  }
-  // FREEZE
+  for (const tl of TILES) if (tl.z === 2 && t >= tl.at) drawTile(tl, t);
+  ctx.restore();
+
+  // ---- FREEZE
   if (t >= 12) {
-    bctx.clearRect(0, 0, W, H); bctx.drawImage(cv, 0, 0);
+    bctx.setTransform(1, 0, 0, 1, 0, 0); bctx.clearRect(0, 0, W, H); bctx.drawImage(cv, 0, 0);
     ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.filter = `grayscale(1) blur(${3 * P(t, 12, 12.6)}px) brightness(${1 - .55 * P(t, 12, 12.4)})`;
     ctx.drawImage(buf, 0, 0); ctx.filter = 'none';
     if (t < 12.35) { const r = rng(Math.floor(t * 60)); for (let i = 0; i < 9; i++) { const y = r() * H, h = 10 + r() * 70, dx = (r() - .5) * 160;
@@ -426,158 +461,126 @@ function pixelWipe(t, at, dur, reverse) {
 }
 
 // =====================================================================
-// SCENE 4 · 26–36 · under the hood
+// SCENE 4 · 26–34 · works in every app
 // =====================================================================
-const NODES = [['rdev::listen', 'global mouse + key hook'], ['mpsc::channel', 'event → worker'], ['copy_selection()', 'worker thread'],
-               ['rdev::simulate', 'synthetic Ctrl + C'], ['arboard', 'reads the clipboard']];
-const CODE = ['rdev::listen(move |e| match e.event_type {', '    EventType::MouseMove { x, y } => pos = (x, y),',
-  '    EventType::ButtonPress(Button::Left) => down_pos = pos,', '    EventType::ButtonRelease(Button::Left) => {',
-  '        let dragged = dist(down_pos, pos) > 5.0;', '        let double = last_click.elapsed() < Duration::from_millis(400);',
-  '        if dragged || double { tx.send(()).ok(); }', '    }', '    _ => {}', '})'];
 function tokens(line) {
-  const re = /(\s+)|(\b(?:let|move|match|if|fn|mut|pub)\b)|(\b\d+(?:\.\d+)?\b)|([A-Z][A-Za-z]*|rdev)|([a-z_]+(?=\())|([A-Za-z_]+)|(=>|\|\||[^\sA-Za-z_0-9])/g;
+  const re = /(\s+)|(\b(?:export|const|let|move|match|if|fn|mut|pub)\b)|("[^"]*")|(\b\d+(?:\.\d+)?\b)|([A-Z][A-Za-z]*)|([a-z_]+(?=\())|([A-Za-z_]+)|([^\sA-Za-z_0-9"])/g;
   const out = []; let m;
-  while ((m = re.exec(line))) out.push([m[0], m[2] ? C.pink : m[3] ? C.amber : m[4] ? C.teal : m[5] ? C.blue : m[6] ? C.ink : m[7] ? '#6b7a86' : C.ink]);
+  while ((m = re.exec(line))) out.push([m[0], m[2] ? C.pink : m[3] ? C.amber : m[4] ? C.amber : m[5] ? C.teal : m[6] ? C.blue : m[7] ? C.ink : m[8] ? '#6b7a86' : C.ink]);
   return out;
 }
+const AW = 780, AH = 330;
+const mono = (s, x, y, color = C.ink, size = 26, weight = 400) => txt(s, x, y, { size, font: MONO, weight, color, align: 'left' });
+const APPS = [
+  { at: 26.3, x: 150, y: 210, title: 'Browser',
+    sel: (x, y) => [x + 40, y + 272, 0, 14],
+    draw: (x, y) => {
+      rrect(x + 24, y + 64, AW - 48, 40, 20, '#0a0f13', C.line, 1);
+      mono('https://shop.example/orders/2048', x + 48, y + 84, C.dim, 18);
+      txt('Order confirmed ✓', x + 40, y + 160, { size: 40, align: 'left' });
+      mono('Tracking number', x + 40, y + 215, C.dim, 22);
+      mono('4815 1623 4242', x + 40, y + 272, C.ink, 26, 700);
+    } },
+  { at: 27.8, x: 990, y: 210, title: 'config.ts — Editor',
+    sel: (x, y) => [x + 70, y + 148, 11, 32],
+    draw: (x, y, cw) => {
+      ['export const config = {', '  apiUrl: "http://localhost:8080",', '  retries: 3,', '};'].forEach((ln, i) => {
+        txt(String(i + 1), x + 34, y + 100 + i * 48, { size: 18, font: MONO, weight: 400, color: '#3a4652' });
+        let xx = x + 70; for (const [tok, col] of tokens(ln)) { mono(tok, xx, y + 100 + i * 48, col); xx += tok.length * cw; }
+      });
+    } },
+  { at: 29.3, x: 150, y: 590, title: 'Chat',
+    sel: (x, y, cw) => [x + AW - 40 - 23 * cw - 20, y + 210, 0, 23],
+    draw: (x, y, cw) => {
+      rrect(x + 30, y + 78, 420, 64, 22, '#1a232c'); txt('where do we meet later?', x + 54, y + 111, { size: 24, weight: 500, align: 'left' });
+      const bw = 23 * cw + 40; rrect(x + AW - 40 - bw, y + 178, bw, 64, 22, 'rgba(61,214,176,.16)', 'rgba(61,214,176,.35)', 1);
+      mono('Bahnhofstrasse 12, Bern', x + AW - 40 - bw + 20, y + 210);
+      mono('19:42 ✓✓', x + AW - 40, y + 268, C.dim, 16);
+    } },
+  { at: 30.8, x: 990, y: 590, title: 'Terminal',
+    sel: (x, y) => [x + 40, y + 100, 6, 22],
+    draw: (x, y, cw, t) => {
+      mono('$', x + 40, y + 100, C.teal, 26, 700); mono(' ssh deploy@10.0.4.21', x + 40 + cw, y + 100);
+      mono('Welcome to prod-eu-west-2.', x + 40, y + 148, C.dim);
+      mono('Last login: Mon Oct  5 22:27', x + 40, y + 196, C.dim);
+      mono('$', x + 40, y + 244, C.teal, 26, 700);
+      if (Math.floor(t * 3) % 2 === 0) { ctx.fillStyle = C.ink; ctx.fillRect(x + 40 + 2 * cw, y + 228, cw * .8, 32); }
+    } }];
 function s4(t) {
-  const pp = beatPulse(t, .5, 8);
-  bg(t, 960, 300, '61,214,176', .09, .05);
-  // intro
-  const io = 1 - E.in3(P(t, 27.6, 28.0));
-  if (io > 0) {
-    ctx.save(); ctx.globalAlpha = io; ctx.translate(0, -80 * (1 - io));
-    txt('UNDER THE HOOD', 960, 360, { size: 26, font: MONO, color: C.teal, ls: 10, alpha: P(t, 26.1, 26.4) });
-    const a = E.outExpo(P(t, 26.2, 26.6));
-    txt('Written in Rust.', 960 + (1 - a) * 120, 500, { size: 150, alpha: a });
-    txt("tiny. native. memory-safe.", 960, 620, { size: 34, font: MONO, weight: 400, color: C.dim, alpha: P(t, 26.9, 27.2) });
-    crab({ x: 960, y: 800 - 40 * bump(t, 27.0, .3), s: .38, arm: snip(t, [27.0, 27.25], .45), blink: blinkAt(t, [27.4]), glow: .6, alpha: P(t, 26.8, 27.0) });
+  bg(t, 960, 560, '61,214,176', .1 + .05 * beatPulse(t, .5, 8), .06);
+  ctx.font = `400 26px ${MONO}`; const cw = ctx.measureText('M').width;
+  const h = E.outExpo(P(t, 25.9, 26.3));
+  const w1 = measure('Works in ', 76), w2 = measure('every app.', 76);
+  txt('Works in ', 960 - (w1 + w2) / 2, 118 - (1 - h) * 40, { size: 76, align: 'left', alpha: h });
+  txt('every app.', 960 - (w1 + w2) / 2 + w1, 118 - (1 - h) * 40, { size: 76, align: 'left', color: C.teal, alpha: h });
+  APPS.forEach((app, ai) => {
+    const u = t - app.at; if (u < 0) return;
+    const p = E.outBack(clamp(u / .45)), a = clamp(u / .12), sc = lerp(.82, 1, p);
+    const glow = u >= .9 ? Math.exp(-(u - .9) * 2.5) : 0, chase = bump(t, 32.2 + ai * .25, .5), g = Math.max(glow, chase);
+    const ox = app.x + AW / 2, oy = app.y + AH / 2;
+    ctx.save(); ctx.translate(ox, oy + (1 - p) * 40); ctx.scale(sc, sc); ctx.translate(-ox, -oy); ctx.globalAlpha = a;
+    win(app.x, app.y, AW, AH, app.title, 1);
+    if (g > 0) { ctx.save(); ctx.shadowColor = C.teal; ctx.shadowBlur = 40 * g; rrect(app.x, app.y, AW, AH, 14, null, `rgba(61,214,176,${g})`, 3); ctx.restore(); }
+    const [lx, ly, from, to] = app.sel(app.x, app.y, cw), sp = E.io3(P(u, .35, .85));
+    if (sp > 0) { ctx.fillStyle = `rgba(61,214,176,${.3 + .4 * glow})`; ctx.fillRect(lx + from * cw - 2, ly - 21, (to - from) * sp * cw + 4, 42); }
+    app.draw(app.x, app.y, cw, t);
+    const cx = lx + lerp(from, to, sp) * cw;
+    ibeam(cx, ly, 38, clamp((u - .12) / .1) * (1 - P(u, 1.15, 1.35)));
+    ripple(lx + from * cw, ly, t, app.at + .35); ripple(lx + to * cw, ly, t, app.at + .85);
+    if (u >= .9) { const b = E.outBack(P(u, .9, 1.2)); ctx.save(); ctx.translate(app.x + AW - 220, app.y + 25); ctx.scale(b, b);
+      rrect(-64, -16, 128, 32, 16, C.teal); txt('COPIED ✓', 0, 1, { size: 15, font: MONO, color: '#032a20' }); ctx.restore(); }
     ctx.restore();
-  }
+  });
+  crab({ x: 960, y: 585, s: .16, arm: snip(t, APPS.map(a => a.at + .9), .5, .25), blink: blinkAt(t, [28.6, 31.9]), glow: .6, alpha: P(t, 26.4, 26.7) });
   pixelWipe(t, 25.75, .5, true);
-  if (t < 28) return;
-  // diagram
-  const NX = i => 230 + i * 365, NY = 250;
-  for (let i = 0; i < 4; i++) {
-    const p = E.io3(P(t, 28.25 + i * .25, 28.6 + i * .25)); if (p <= 0) continue;
-    ctx.strokeStyle = '#2b3a46'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(NX(i) + 150, NY); ctx.lineTo(NX(i) + 150 + 65 * p, NY); ctx.stroke();
-    if (p >= 1) { ctx.fillStyle = '#2b3a46'; ctx.beginPath(); ctx.moveTo(NX(i + 1) - 150, NY); ctx.lineTo(NX(i + 1) - 162, NY - 8); ctx.lineTo(NX(i + 1) - 162, NY + 8); ctx.fill(); }
-  }
-  // packets
-  const packets = []; for (let k = 0; k < 7; k++) { const at = 29.5 + k; const p = P(t, at, at + 1.6); if (p > 0 && p < 1) packets.push(lerp(NX(0), NX(4), E.io3(p))); }
-  NODES.forEach(([a, b], i) => {
-    const p = E.outBack(P(t, 28.0 + i * .25, 28.4 + i * .25)); if (p <= 0) return;
-    const hot = packets.reduce((m, px) => Math.max(m, 1 - clamp(Math.abs(px - NX(i)) / 160)), 0);
-    ctx.save(); ctx.translate(NX(i), NY); ctx.scale(p, p);
-    if (hot > 0) { ctx.shadowColor = C.teal; ctx.shadowBlur = 40 * hot; }
-    rrect(-150, -62, 300, 124, 16, `rgba(${Math.round(14 + 30 * hot)},${Math.round(20 + 60 * hot)},${Math.round(26 + 45 * hot)},1)`, hot > .1 ? C.teal : C.line, 2);
-    ctx.shadowColor = 'transparent';
-    txt(a, 0, -14, { size: 24, font: MONO, color: hot > .3 ? '#fff' : C.ink });
-    txt(b, 0, 22, { size: 17, font: MONO, weight: 400, color: hot > .3 ? C.teal : C.dim });
-    txt(String(i + 1).padStart(2, '0'), -132, -44, { size: 13, font: MONO, color: '#3a4652', align: 'left' });
-    ctx.restore();
-  });
-  for (const px of packets) { if (Math.abs(px - NX(Math.round((px - 230) / 365))) < 150) continue;
-    ctx.save(); ctx.shadowColor = C.teal; ctx.shadowBlur = 24; ctx.fillStyle = C.teal; ctx.fillRect(px - 9, NY - 9, 18, 18); ctx.restore(); }
-  // code panel
-  const cp = E.out3(P(t, 28.4, 28.9));
-  ctx.save(); ctx.globalAlpha = cp; ctx.translate(0, (1 - cp) * 60);
-  const X = 240, Y = 420, Wd = 1440, Ht = 560;
-  win(X, Y, Wd, Ht, 'src/selection.rs', 1);
-  ctx.font = `400 25px ${MONO}`; const cw = ctx.measureText('M').width;
-  const total = CODE.reduce((a, l) => a + l.length, 0); let budget = Math.floor(total * P(t, 28.7, 31.8)), lastX = 0, lastY = 0;
-  // highlight band
-  const hb = E.io3(P(t, 32.1, 32.5));
-  if (hb > 0) { ctx.save(); ctx.globalAlpha *= hb; ctx.shadowColor = C.teal; ctx.shadowBlur = 30;
-    rrect(X + 70, Y + 82 + 4 * 46 - 22, (Wd - 100) * hb, 3 * 46, 10, 'rgba(61,214,176,.08)', C.teal, 2); ctx.restore(); }
-  CODE.forEach((ln, i) => {
-    const y = Y + 82 + i * 46; txt(String(i + 22), X + 44, y, { size: 18, font: MONO, weight: 400, color: '#34414c', align: 'center' });
-    if (budget <= 0) return; let x = X + 90, used = 0; const dimmed = hb > 0 && (i < 4 || i > 6);
-    for (const [tok, col] of tokens(ln)) { if (budget <= 0) break; const s = tok.slice(0, budget); budget -= s.length; used += s.length;
-      txt(s, x, y, { size: 25, font: MONO, weight: 400, color: col, align: 'left', alpha: dimmed ? .35 : 1 }); x += s.length * cw; }
-    lastX = x; lastY = y;
-  });
-  if (t < 32 && Math.floor(t * 4) % 2 === 0) { ctx.fillStyle = C.teal; ctx.fillRect(lastX + 2, lastY - 16, 13, 32); }
-  // callouts
-  const callout = (label, x, y, at, col) => { const p = E.outBack(P(t, at, at + .3)); if (p <= 0) return;
-    ctx.save(); ctx.translate(x, y); ctx.scale(p, p); const w = measure(label, 22, MONO, 700) + 34;
-    rrect(0, -22, w, 44, 22, col); txt(label, w / 2, 1, { size: 22, font: MONO, color: '#05080a' }); ctx.restore(); };
-  callout('← drag > 5 px', X + 90 + CODE[4].length * cw + 30, Y + 82 + 4 * 46, 32.6, C.amber);
-  callout('← 2 clicks in 400 ms', X + 90 + CODE[5].length * cw + 30, Y + 82 + 5 * 46, 32.9, C.amber);
-  callout('← copy!', X + 90 + CODE[6].length * cw + 30, Y + 82 + 6 * 46, 33.2, C.teal);
-  ctx.restore();
-  // exit
-  if (t > 35.4) { ctx.fillStyle = `rgba(6,8,11,${E.in3(P(t, 35.4, 36))})`; ctx.fillRect(-60, -60, W + 120, H + 120); }
+  pixelWipe(t, 33.35, .55, false);
 }
 
 // =====================================================================
-// SCENE 5 · 36–44 · numbers + tray
+// SCENE 5 · 34–40 · lives in the tray, then dive into the icon
 // =====================================================================
-const STATS = [{ n: 129, suf: '', label: 'lines of Rust', sub: 'main.rs · selection.rs · tray.rs' },
-  { n: 5, suf: ' px', label: 'drag threshold', sub: 'dist(down_pos, pos) > 5.0' },
-  { n: 400, suf: ' ms', label: 'double-click window', sub: 'Duration::from_millis(400)' },
-  { n: 0, suf: '', label: 'Ctrl+C presses needed', sub: 'snipy does them for you' },
-  { n: 6, suf: '', label: 'crates', sub: 'rdev · arboard · tray-icon · tao …' },
-  { n: 2, suf: ' days', label: 'first commit → working app', sub: 'Oct 5 → Oct 6, 2026' }];
 function s5(t) {
-  const pp = beatPulse(t, .5, 8);
-  bg(t, 960, 540, '61,214,176', .08 + (t < 41 ? .05 * pp : 0), .05);
-  const out = (i) => E.in3(P(t, 40.75 + i * .06, 41.2 + i * .06));
-  txt('BY THE NUMBERS', 960, 120, { size: 26, font: MONO, color: C.teal, ls: 10, alpha: P(t, 36, 36.3) * (1 - P(t, 40.7, 41)) });
-  STATS.forEach((s, i) => {
-    const at = 36 + i * .5, p = E.outBack(P(t, at, at + .35)); if (p <= 0) return;
-    const o = out(i); if (o >= 1) return;
-    const col = i % 3, row = Math.floor(i / 3), x = 140 + col * 560, y = 200 + row * 290;
-    ctx.save(); ctx.translate(x + 260, y + 125 - o * 900); ctx.scale(p, p); ctx.rotate(o * (col - 1) * .3); ctx.globalAlpha = 1 - o;
-    const hit = bump(t, at, .3);
-    rrect(-260, -125, 520, 250, 20, `rgba(${14 + 40 * hit},${20 + 80 * hit},${26 + 60 * hit},.95)`, hit > .2 ? C.teal : C.line, 2);
-    const v = Math.round(s.n * E.out3(P(t, at, at + .6)));
-    txt(v + s.suf, -220, -35, { size: 108, color: C.teal, align: 'left' });
-    txt(s.label, -220, 50, { size: 30, align: 'left', weight: 500 });
-    txt(s.sub, -220, 90, { size: 17, font: MONO, weight: 400, color: C.dim, align: 'left' });
-    ctx.restore();
-  });
-  if (t < 41) return;
-  // ---- tray act
-  const tb = E.out3(P(t, 41.0, 41.5)), TBY = H - 72 * tb;
-  const h1 = E.outExpo(P(t, 41.25, 41.6)), h2 = E.outExpo(P(t, 41.55, 41.9));
-  txt('Lives in your tray.', 960, 390 + (1 - h1) * 60, { size: 120, alpha: h1 });
-  txt('Stays out of your way.', 960, 530 + (1 - h2) * 60, { size: 120, color: C.teal, alpha: h2 });
-  ctx.fillStyle = 'rgba(24,28,34,.96)'; ctx.fillRect(0, TBY, W, 72); ctx.fillStyle = 'rgba(255,255,255,.08)'; ctx.fillRect(0, TBY, W, 1);
-  // centered taskbar icons
-  const ic = [0, 1, 2, 3, 4].map(i => 960 - 120 + i * 60);
-  ic.forEach((x, i) => { if (i === 0) { ctx.fillStyle = '#4cc2ff'; [[0, 0], [12, 0], [0, 12], [12, 12]].forEach(([a, b]) => ctx.fillRect(x - 12 + a, TBY + 24 + b, 11, 11)); }
+  bg(t, 960, 480, '61,214,176', .09, .05);
+  const trayX = 1640, tb = E.out3(P(t, 34.0, 34.5)), TBY = H - 72 * tb, trayY = TBY + 36;
+  const dive = E.inExpo(P(t, 38.3, 40)), zs = 1 + dive * 34, txtOut = 1 - P(t, 38.1, 38.5);
+  const h1 = E.outExpo(P(t, 34.3, 34.65)), h2 = E.outExpo(P(t, 34.6, 34.95));
+  txt('Lives in your tray.', 960, 390 + (1 - h1) * 60, { size: 120, alpha: h1 * txtOut });
+  txt('Stays out of your way.', 960, 530 + (1 - h2) * 60, { size: 120, color: C.teal, alpha: h2 * txtOut });
+  ctx.save(); ctx.translate(lerp(trayX, 960, E.io3(P(t, 38.3, 39.6))), lerp(trayY, 540, E.io3(P(t, 38.3, 39.6)))); ctx.scale(zs, zs); ctx.translate(-trayX, -trayY);
+  ctx.fillStyle = 'rgba(24,28,34,.96)'; ctx.fillRect(-60, TBY, W + 120, 80); ctx.fillStyle = 'rgba(255,255,255,.08)'; ctx.fillRect(-60, TBY, W + 120, 1);
+  [0, 1, 2, 3, 4].map(i => 840 + i * 60).forEach((x, i) => {
+    if (i === 0) { ctx.fillStyle = '#4cc2ff'; [[0, 0], [12, 0], [0, 12], [12, 12]].forEach(([a, b]) => ctx.fillRect(x - 12 + a, TBY + 24 + b, 11, 11)); }
     else rrect(x - 14, TBY + 22, 28, 28, 7, ['', '#3a4450', '#e8a33d', '#3d7bd6', '#5b5f66'][i]); });
-  // tray
-  const trayX = 1640, trayY = TBY + 36;
   txt('⌃', 1590, trayY + 2, { size: 22, font: MONO, color: '#c8d0d6' });
-  const ring = beatPulse(t - 42, 1, 3) * (t > 41.6);
+  const ring = beatPulse(t - 35, 1, 3) * (t > 35 && t < 38.3);
   if (ring > 0) { ctx.strokeStyle = `rgba(61,214,176,${ring * .8})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(trayX, trayY, 18 + (1 - ring) * 22, 0, 7); ctx.stroke(); }
-  crab({ x: trayX, y: trayY, s: .09, glow: .4 + .4 * ring, blink: blinkAt(t, [43.2]) });
+  crab({ x: trayX, y: trayY, s: .09, glow: .4 + .4 * ring + dive, blink: blinkAt(t, [37.6]), arm: snip(t, [38.6], .4) });
   txt('ENG', 1700, trayY, { size: 15, font: MONO, weight: 400, color: '#c8d0d6' });
   txt('15:08', 1810, trayY - 11, { size: 15, font: MONO, weight: 400, color: '#e5e9ec' });
   txt('06.10.2026', 1810, trayY + 12, { size: 15, font: MONO, weight: 400, color: '#e5e9ec' });
-  // cursor + tooltip + menu
-  const cm = E.io3(P(t, 41.6, 42.1)); let cx = lerp(1300, trayX + 4, cm), cy = lerp(760, trayY + 4, cm);
-  const menuP = E.outExpo(P(t, 42.75, 43.0));
-  if (t > 43.05) { const m2 = E.io3(P(t, 43.05, 43.4)); cx = lerp(trayX + 4, trayX - 80, m2); cy = lerp(trayY + 4, TBY - 104, m2); }
-  const tip = P(t, 42.15, 42.25) * (1 - P(t, 42.7, 42.75));
+  // cursor, tooltip, menu
+  const cm = E.io3(P(t, 35.0, 35.6)); let cx = lerp(1300, trayX + 4, cm), cy = lerp(760, trayY + 4, cm);
+  if (t > 36.9) { const m2 = E.io3(P(t, 36.9, 37.3)); cx = lerp(trayX + 4, trayX - 80, m2); cy = lerp(trayY + 4, TBY - 104, m2); }
+  const tip = P(t, 35.65, 35.8) * (1 - P(t, 36.45, 36.5));
   if (tip > 0) { ctx.save(); ctx.globalAlpha = tip; rrect(trayX - 45, TBY - 52, 90, 38, 8, '#2b3038', 'rgba(255,255,255,.1)', 1);
-    txt('Snipy', trayX, TBY - 33, { size: 17, font: DISPLAY, weight: 500 }); ctx.restore(); }
+    txt('Snipy', trayX, TBY - 33, { size: 17, weight: 500 }); ctx.restore(); }
+  const menuP = E.outExpo(P(t, 36.55, 36.8)) * (1 - P(t, 37.9, 38.15));
   if (menuP > 0) { ctx.save(); ctx.globalAlpha = menuP; ctx.translate(0, (1 - menuP) * 20);
-    const mx = trayX - 210, my = TBY - 150, hov = t > 43.4;
+    const mx = trayX - 210, my = TBY - 150;
     ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 30; rrect(mx, my, 200, 124, 10, '#2b3038', 'rgba(255,255,255,.1)', 1); ctx.shadowColor = 'transparent';
-    if (hov) rrect(mx + 6, my + 8, 188, 50, 6, 'rgba(255,255,255,.08)');
+    if (t > 37.3) rrect(mx + 6, my + 8, 188, 50, 6, 'rgba(255,255,255,.08)');
     txt('Settings', mx + 24, my + 33, { size: 19, weight: 500, align: 'left' });
     txt('Quit', mx + 24, my + 91, { size: 19, weight: 500, align: 'left' });
     ctx.restore(); }
-  arrowCursor(cx, cy, 1.1, P(t, 41.5, 41.7));
-  ripple(cx, cy, t, 42.7, C.ink);
-  if (t > 43.55) { ctx.fillStyle = `rgba(6,8,11,${E.in3(P(t, 43.55, 44))})`; ctx.fillRect(-60, -60, W + 120, H + 120); }
+  arrowCursor(cx, cy, 1.1, P(t, 34.9, 35.1) * (1 - P(t, 38.0, 38.2)));
+  ripple(cx, cy, t, 36.5, C.ink);
+  ctx.restore();
+  pixelWipe(t, 33.75, .5, true);
+  ctx.fillStyle = `rgba(255,255,255,${E.in3(P(t, 39.4, 40))})`; ctx.fillRect(-60, -60, W + 120, H + 120);
 }
 
 // =====================================================================
-// SCENE 6 · 44–52 · SELECT. SNIP. DONE. + lockup
+// SCENE 6 · 40–48 · SELECT. SNIP. DONE. + lockup (called with T + 4)
 // =====================================================================
 const DUST = (() => { const r = rng(3); return Array.from({ length: 60 }, () => ({ x: r() * W, y: r() * H, v: 10 + r() * 30, s: 3 + r() * 7, ph: r() * 6 })); })();
 function s6(t) {
@@ -631,7 +634,7 @@ function s6(t) {
 function render(T, frame = Math.round(T * 60)) {
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; ctx.filter = 'none';
   const [sx, sy] = shake(T); ctx.save(); ctx.translate(sx, sy);
-  if (T < 6) s1(T); else if (T < 14) s2(T); else if (T < 26) s3(T); else if (T < 36) s4(T); else if (T < 44) s5(T); else s6(T);
+  if (T < 6) s1(T); else if (T < 14) s2(T); else if (T < 26) s3(T); else if (T < 34) s4(T); else if (T < 40) s5(T); else s6(T + 4);
   ctx.restore();
   post(T, frame);
 }

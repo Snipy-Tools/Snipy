@@ -7,7 +7,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import ffmpeg from 'ffmpeg-static';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
-const FPS = 60, DUR = 52;
+const FPS = 60, DUR = 48;
 const CHROME = process.env.CHROME || 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 
 const browser = await chromium.launch({ executablePath: CHROME, args: ['--force-device-scale-factor=1'] });
