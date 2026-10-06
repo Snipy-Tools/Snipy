@@ -4,7 +4,6 @@ use std::thread::spawn;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 use rdev::{EventType, Button};
-use clipboard_rs::{ClipboardContext, ClipboardProvider};
 
 pub fn start() -> Arc<AtomicBool> {
     let enabled = Arc::new(AtomicBool::new(true));
@@ -12,8 +11,6 @@ pub fn start() -> Arc<AtomicBool> {
     let (tx, rx) = mpsc::channel::<()>();
     
     let enabled_hook = Arc::clone(&enabled);
-    let simulating_clone = Arc::clone(&simulating);
-
     let simulating_clone = Arc::clone(&simulating);
 
     spawn(move || for _ in rx { copy_selection(&simulating_clone) });
@@ -41,10 +38,6 @@ pub fn start() -> Arc<AtomicBool> {
                     tx.send(()).ok();
                 }
             }
-               if(simulating_clone.load(Ordering::Relaxed)) {
-                    let ctx = ClipboardContext::new().unwrap();
-                    ctx.set_contents("".to_string()).unwrap();
-                }
             _ => {}
         }).expect("listen failed");
     });
