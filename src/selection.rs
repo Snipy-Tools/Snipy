@@ -28,10 +28,18 @@ pub fn start() -> Arc<Settings> {
     spawn(move || { 
         let mut down_pos = (0.0_f64, 0.0_f64);
         let mut pos = (0.0_f64, 0.0_f64);
+        let mut ctrl_down = false;
         let mut last_click = Instant::now() - Duration::from_secs(1);
         rdev::listen(move |e| match e.event_type {
             EventType::MouseMove { x, y } => pos = (x, y), 
             EventType::ButtonPress(Button::Left) => down_pos = pos,
+            EventType::KeyPress(rdev::Key::ControlLeft | rdev::Key::ControlRight) => ctrl_down = true,
+            EventType::KeyRelease(rdev::Key::ControlLeft | rdev::Key::ControlRight) => ctrl_down = false,
+            EventType::KeyPress(rdev::Key::KeyA) if ctrl_down => {
+                if enabled_hook.load(Ordering::Relaxed) && !simulating.load(Ordering::Relaxed) {
+                    tx.send(()).ok();
+            }
+            }
             EventType::ButtonRelease(Button::Left) => {
                 let dragged = dist(down_pos, pos) > 5.0;
                 let double = last_click.elapsed() < Duration::from_millis(400);

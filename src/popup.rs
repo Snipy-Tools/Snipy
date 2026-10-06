@@ -9,7 +9,7 @@ use tao::platform::windows::WindowBuilderExtWindows;
 use tao::window::{Window, WindowBuilder};
 use wry::{WebView, WebViewBuilder};
 
-const SIZE: LogicalSize<f64> = LogicalSize::new(360.0, 180.0);
+const SIZE: LogicalSize<f64> = LogicalSize::new(360.0, 280.0);
 const MARGIN: f64 = 12.0;
 const TASKBAR: f64 = 48.0;
 
@@ -73,7 +73,7 @@ impl Popup {
         let trigger = self.settings.trigger.load(Ordering::Relaxed);
         let minlen = self.settings.min_len.load(Ordering::Relaxed);
         self.webview
-            .evaluate_script(&format!("show('home');render({{enabled:{enabled},trigger:{trigger},minlen:{minlen}}})"))
+            .evaluate_script(&format!("render({{enabled:{enabled},trigger:{trigger},minlen:{minlen}}})"))
             .ok();
     }
 
