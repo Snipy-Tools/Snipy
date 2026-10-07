@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Snipy Films</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Space+Grotesk:wght@500;700&family=Inter:wght@500;600;700&display=block" rel="stylesheet">
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  canvas { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+           width: min(100vw, 177.78vh); height: min(56.25vw, 100vh); }
+</style>
+</head>
+<body>
+<canvas id="c" width="1920" height="1080"></canvas>
+<script src="lib.js"></script>
+<script>
+const APP_SNIPS = [
+  ['Browser', 'Tracking: ', '4815 1623 4242', ''],
+  ['config.ts — Editor', '  apiUrl: "', 'http://localhost', '"'],
+  ['Chat', 'Meet at ', 'Bahnhofstrasse 12', '?'],
+  ['Terminal', '$ ssh ', 'deploy@10.0.4.21', ''],
+  ['Notes', 'Call back ', 'Maria', ' at five'],
+  ['Mail', 'Invoice ', 'INV-20481', ' is due'],
+];
+
+function panelApp(t, ts, title, pre, hit, post) {
+  const AW = 780, AH = 300, u = t - ts;
+  win(0, 0, AW, AH, title, 1);
+  const glow = u >= 1 ? Math.exp(-(u - 1) * 2.5) : 0;
+  if (glow > 0) { ctx.save(); ctx.shadowColor = C.teal; ctx.shadowBlur = 40 * glow; rrect(0, 0, AW, AH, 14, null, `rgba(61,214,176,${glow})`, 3); ctx.restore(); }
+  ctx.font = `400 34px ${MONO}`; const cw = ctx.measureText('M').width, x0 = 44, y0 = 175, sp = E.io3(P(u, .35, .85));
+  if (u >= .35) { ctx.fillStyle = `rgba(61,214,176,${.3 + .4 * glow})`; ctx.fillRect(x0 + pre.length * cw - 2, y0 - 26, hit.length * sp * cw + 4, 52); }
+  txt(pre + hit + post, x0, y0, { size: 34, font: MONO, weight: 400, align: 'left' });
+  ibeam(x0 + (pre.length + hit.length * sp) * cw, y0, 44, clamp((u - .12) / .1) * (1 - P(u, 1.15, 1.35)));
+  ripple(x0 + pre.length * cw, y0, u, .35); ripple(x0 + (pre.length + hit.length) * cw, y0, u, .85);
+  if (u >= .9) { const b = E.outBack(P(u, .9, 1.2)); ctx.save(); ctx.translate(AW - 250, 25); ctx.scale(b, b);
+    rrect(-64, -16, 128, 32, 16, C.teal); txt('COPIED ✓', 0, 1, { size: 15, font: MONO, color: DARK }); ctx.restore(); }
+}
+
+function endCard(t) {
+  stage(960, 420, .2 * P(t, 0, 1.2));
+  const asm = E.io3(P(t, .1, 1.6)), settle = E.out3(P(t, 0, 4));
+  reflect(570, () => crab3d({ x: 960, y: 385, s: 15, yaw: lerp(-1.1, -.5, settle) + .3 * Math.sin(t * .7), pitch: -.2, assemble: asm,
+    glint: lerp(-380, 380, E.io3(P(t, .8, 2.6))), arm: snip(t, [2.6, 2.9], .4) }), .2 * asm, 110);
+  rv('Snipy.', 960, 790, t, 1.0, { size: 170, color: gradFill(960, 520), dur: 1.1 });
+  rv("Highlight it. It's copied.", 960, 910, t, 1.8, { size: 46, weight: 500, color: C.dim, out: 2.8 });
+  rv('Available now for Windows.', 960, 910, t, 3.0, { size: 46, weight: 500, color: C.ink });
+}
+
+// =====================================================================
+// FILM 1 · Introducing Snipy · 23 s
+// =====================================================================
+function introHook(t) {
+  stage(960, 540, 0);
+  rv('Every copy starts with a shortcut.', 960, 540, t, .4, { size: 92, out: 1.9 });
+  rv("It doesn't have to.", 960, 540, t, 2.0, { size: 120, color: gradFill(960, 960), out: 3.0 });
+}
+function introReveal(t) {
+  stage(960, 470, .2 * P(t, 0, 1.6));
+  const asm = E.io3(P(t, .2, 2.0));
+  reflect(760, () => crab3d({ x: 960, y: 470, s: 22, yaw: lerp(-2.3, .35, E.io3(P(t, .2, 4.4))), pitch: lerp(-.34, -.16, E.io3(P(t, .2, 4.4))), assemble: asm,
+    glint: lerp(-520, 520, E.io3(P(t, 1.8, 3.8))), arm: snip(t, [4.2], .4) }), .16 * asm, 140);
+  rv('Introducing Snipy.', 960, 930, t, 2.8, { size: 76, weight: 600, color: C.ink });
+}
+function introHighlight(t) {
+  stage(1250, 540, .12);
+  rv('Highlight text.', 130, 470, t, .4, { size: 92, align: 'left', out: 3.6 });
+  rv("It's copied.", 130, 585, t, 1.2, { size: 92, align: 'left', color: gradFill(370, 480), out: 3.6 });
+  const WX = 900, WY = 270, WW = 760, WH = 540, TX = 950, TY = 430, LH = 90, push = 1.22 + .05 * P(t, 0, 4);
+  ctx.font = `400 34px ${MONO}`; const cw = ctx.measureText('M').width, L = E.outExpo(P(t, .1, .8));
+  ctx.save(); ctx.translate(1280, 540); ctx.scale(push, push); ctx.translate(-1280, -540);
+  ctx.save(); ctx.filter = 'blur(36px)'; ctx.globalAlpha = .3 * L; ctx.translate(1280, 540); ctx.scale(1.5, 1.5); ctx.translate(-1280, -540); win(WX, WY, WW, WH, '', 1); ctx.restore();
+  ctx.globalAlpha *= L; ctx.translate(0, (1 - L) * 50);
+  win(WX, WY, WW, WH, 'notes.md — Editor', 1);
+  if (t >= 1.2) { ctx.fillStyle = `rgba(61,214,176,${t >= 2.1 ? .5 : .32})`; ctx.fillRect(TX + 8 * cw - 2, TY + LH - 28, 14 * E.io3(P(t, 1.2, 2.0)) * cw + 4, 56); }
+  ['# Release notes', 'server: 10.0.4.21:8080', 'ticket SNP-2048 is fixed'].forEach((ln, i) =>
+    txt(ln, TX, TY + i * LH, { size: 34, font: MONO, weight: 400, color: i === 0 ? C.teal : C.ink, align: 'left' }));
+  const [cx, cy] = follow(t, [[.7, 1500, 790], [1.15, TX + 8 * cw, TY + LH], [1.2, TX + 8 * cw, TY + LH], [2.0, TX + 22 * cw, TY + LH], [3.4, TX + 22 * cw + 40, TY + LH + 50]]);
+  ripple(cx, cy, t, 1.2); ripple(cx, cy, t, 2.0);
+  toastPill(TX + 22 * cw - 20, TY + LH - 95, E.outBack(P(t, 2.1, 2.45)), P(t, 2.1, 2.2) * (1 - P(t, 3.3, 3.7)));
+  if (t < 3.6) ibeam(cx, cy, 46, 1);
+  ctx.restore();
+}
+function introSelect(t) {
+  stage(960, 540, .1);
+  [['Drag.', .3], ['Double-click.', 1.0], ['Select all.', 1.7]].forEach(([w, at], i) => {
+    const y = 300 + i * 210, size = 170, ww = measure(w, size, SF, 700, -size * .02), sp = E.io3(P(t, at + .6, at + 1.1));
+    if (sp > 0) { ctx.fillStyle = 'rgba(61,214,176,.3)'; ctx.globalAlpha = 1 - P(t, 3.1, 3.5); ctx.fillRect(960 - ww / 2 - 10, y - 95, (ww + 20) * sp, 190); ctx.globalAlpha = 1; }
+    rv(w, 960, y, t, at, { size, out: 3.1 });
+    toastPill(960 + ww / 2 + 135, y, .95 * E.outBack(P(t, at + 1.1, at + 1.4)), clamp((t - at - 1.1) / .1) * (1 - P(t, at + 1.9, at + 2.3)));
+  });
+}
+function introApps(t) {
+  stage(960, 480, .1);
+  const drift = (t - 0) * 12;
+  [[-200, 330, 1.5], [2000, 700, 1.4]].forEach(([gx, gy, gs]) => { ctx.save(); ctx.filter = 'blur(30px)'; ctx.globalAlpha = .22; ctx.translate(gx - drift * .6 - 100, gy); ctx.scale(gs, gs); win(0, 0, 780, 300, '', 1); ctx.restore(); });
+  [[520, 310, 0, .1], [1400, 310, 1, .6], [520, 625, 2, 1.1], [1400, 625, 3, 1.6]].forEach(([cx, cy, i, ts], k) => {
+    const p = E.outExpo(P(t, .1 + k * .12, .8 + k * .12));
+    ctx.save(); ctx.translate(cx - drift * (k % 2 ? -1 : 1) * .4, cy + (1 - p) * 40); ctx.scale(.95, .95); ctx.translate(-390, -150); ctx.globalAlpha *= p;
+    panelApp(t, ts + .3, ...APP_SNIPS[i]); ctx.restore();
+  });
+  rv('Works in every app.', 960, 905, t, .5, { size: 84, color: gradFill(960, 800) });
+}
+const INTRO_AT = [0, 3.2, 8.2, 12.2, 15.8, 19.4];
+function filmIntro(T) {
+  const k = INTRO_AT.filter(a => T >= a).length - 1, t = T - INTRO_AT[k];
+  [introHook, introReveal, introHighlight, introSelect, introApps, endCard][k](t);
+}
+
+// =====================================================================
+// FILM 2 · Action cut · 11.5 s
+// =====================================================================
+const STOPS = [[0, 1.3], [1.65, 2.8], [3.15, 4.1], [4.45, 5.2], [5.5, 6.1], [6.35, 6.9]], SPAN = 2400;
+function camX(t) {
+  let x = 0;
+  for (let i = 0; i < STOPS.length - 1; i++) { const a = STOPS[i][1], b = STOPS[i + 1][0]; if (t >= a) x = lerp(i * SPAN, (i + 1) * SPAN, E.io3(P(t, a, b))); }
+  return x;
+}
+function actionScene(t) {
+  const cx = camX(t), z = 1 + 4.5 * E.in3(P(t, 6.9, 7.4));
+  stage(960 + Math.sin(t * .8) * 220, 540, .13);
+  ctx.save(); ctx.translate(960, 540); ctx.scale(z, z); ctx.translate(-960, -540);
+  STOPS.forEach(([arr], i) => {
+    const px = 960 + i * SPAN - cx; if (px < -1300 || px > 3200) return;
+    const dwell = P(t, arr, STOPS[i][1]), s = 1.7 + .08 * dwell;
+    ctx.save(); ctx.translate(px, 540 + (i % 2 ? 50 : -50)); ctx.scale(s, s); ctx.translate(-390, -150);
+    panelApp(t, arr + .05, ...APP_SNIPS[i]); ctx.restore();
+  });
+  ctx.restore();
+}
+function filmAction(T) {
+  if (T >= 7.4) { endCard(T - 7.4); return; }
+  const speed = Math.abs(camX(T + .01) - camX(T - .01)) / .02 + 900 * (P(T, 6.9, 7.4) > 0), n = clamp(Math.round(speed / 600), 1, 16);
+  if (n === 1) { actionScene(T); return; }
+  for (let k = 0; k < n; k++) {
+    ctx.setTransform(1, 0, 0, 1, 0, 0); actionScene(T + (k / (n - 1) - .5) * .03);
+    actx.globalAlpha = 1 / (k + 1); actx.drawImage(cv, 0, 0);
+  }
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.drawImage(acc, 0, 0);
+}
+
+// =====================================================================
+// FILM 3 · Designed to disappear · 14.8 s
+// =====================================================================
+function settingsCard(o) {
+  rrect(0, 0, 360, 280, 18, '#0E141A', '#26323d', 1.5);
+  crab({ x: 42, y: 42, s: .15, glow: o.on ? .35 : 0, color: o.on ? C.teal : '#4c5a63' });
+  txt('Snipy', 76, 34, { size: 22, align: 'left' });
+  txt(o.on ? 'Auto-copy on' : 'Auto-copy off', 76, 58, { size: 13, font: MONO, weight: 400, color: o.on ? C.teal : C.dim, align: 'left' });
+  rrect(296, 29, 48, 28, 14, o.on ? C.teal : '#2a3540');
+  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(lerp(310, 330, o.k), 43, 10, 0, 7); ctx.fill();
+  ctx.fillStyle = C.line; ctx.fillRect(0, 84, 360, 1);
+  const sel = (y, label, val, hot) => {
+    txt(label, 24, y, { size: 15, weight: 500, align: 'left' });
+    rrect(176, y - 17, 160, 34, 9, '#131b22', hot ? C.teal : C.line, hot ? 1.5 : 1);
+    txt(val, 188, y, { size: 12.5, weight: 500, align: 'left' });
+    ctx.strokeStyle = C.dim; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(318, y - 3); ctx.lineTo(322, y + 2); ctx.lineTo(326, y - 3); ctx.stroke();
+  };
+  sel(122, 'Trigger', o.trig, o.hot === 0); sel(174, 'Minimum length', o.min, o.hot === 1);
+  rrect(24, 226, 64, 32, 9, '#1a232c'); txt('Quit', 56, 242, { size: 14, weight: 500 });
+}
+function dropdown(y, opts, hover, p) {
+  if (p <= 0) return;
+  ctx.save(); ctx.globalAlpha *= p; ctx.translate(0, (1 - p) * -8);
+  ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 24; ctx.shadowOffsetY = 8;
+  rrect(176, y + 20, 160, opts.length * 30 + 8, 10, '#1a232c', '#2f3c47', 1); ctx.shadowColor = 'transparent';
+  opts.forEach((s, i) => { if (i === hover) rrect(182, y + 24 + i * 30, 148, 30, 7, 'rgba(61,214,176,.22)');
+    txt(s, 192, y + 39 + i * 30, { size: 13, weight: 500, align: 'left', color: i === hover ? C.teal : C.ink }); });
+  ctx.restore();
+}
+function trayMacro(t) {
+  stage(960, 560, .1);
+  const TBY = H - 72, trayX = 1640, trayY = TBY + 36, z = lerp(1.6, 3.4, E.io3(P(t, 0, 2.6)));
+  ctx.save(); ctx.translate(960, 620); ctx.scale(z, z); ctx.translate(-trayX, -trayY);
+  ctx.fillStyle = 'rgba(24,28,34,.96)'; ctx.fillRect(trayX - 1500, TBY, 3000, 400); ctx.fillStyle = 'rgba(255,255,255,.1)'; ctx.fillRect(trayX - 1500, TBY, 3000, 1);
+  [-330, -270, -210, -150, -90].forEach((dx, i) => { if (i === 0) { ctx.fillStyle = '#4cc2ff'; [[0, 0], [12, 0], [0, 12], [12, 12]].forEach(([a, b]) => ctx.fillRect(trayX + dx - 12 + a, TBY + 24 + b, 11, 11)); }
+    else rrect(trayX + dx - 14, TBY + 22, 28, 28, 7, ['', '#3a4450', '#e8a33d', '#3d7bd6', '#5b5f66'][i]); });
+  txt('⌃', trayX - 50, trayY + 2, { size: 22, font: MONO, color: '#c8d0d6' });
+  txt('ENG', trayX + 60, trayY, { size: 15, font: MONO, weight: 400, color: '#c8d0d6' });
+  txt('15:08', trayX + 170, trayY - 11, { size: 15, font: MONO, weight: 400, color: '#e5e9ec' });
+  txt('06.10.2026', trayX + 170, trayY + 12, { size: 15, font: MONO, weight: 400, color: '#e5e9ec' });
+  const ring = beatPulse(t - 1.9, 1, 3) * (t > 1.9);
+  crab({ x: trayX, y: trayY, s: .09, glow: .4 + .6 * ring, blink: blinkAt(t, [.9]), arm: snip(t, [2.0], .4) });
+  const [cx, cy] = follow(t, [[.6, trayX + 330, trayY + 200], [1.8, trayX + 4, trayY + 4]]);
+  arrowCursor(cx, cy, 1.1, P(t, .5, .8)); ripple(cx, cy, t, 2.0, C.ink);
+  ctx.restore();
+  rv('Lives in your tray.', 960, 190, t, .4, { size: 96, out: 2.4 });
+  rv('Never in the way.', 960, 310, t, 1.1, { size: 96, color: gradFill(960, 760), out: 2.4 });
+}
+const SW_WORDS = [[3.5, 'One', 'switch.'], [6.4, 'Your', 'trigger.'], [8.8, 'Your', 'minimum.']];
+const SW_PATH = [[3.4, 430, 100], [4.3, 322, 43], [5.9, 322, 43], [6.8, 262, 122], [7.5, 262, 122], [8.0, 262, 221], [8.8, 262, 221],
+                 [9.15, 262, 174], [9.7, 262, 174], [10.05, 262, 303], [10.6, 262, 303], [10.9, 440, 180]];
+function settingsHero(t) {
+  stage(1250, 540, .15);
+  const pIn = E.outExpo(P(t, 3.1, 3.8)), S = 2.6 * (1 + .04 * P(t, 3, 11)), px = 1250 - 180 * S, py = 540 - 140 * S + (1 - pIn) * 70;
+  SW_WORDS.forEach(([at, a, b], i) => {
+    const nxt = i < 2 ? SW_WORDS[i + 1][0] : 10.9;
+    rv(a, 110, 440, t, at, { size: 130, align: 'left', out: nxt - .5 }); rv(b, 110, 580, t, at + .15, { size: 130, align: 'left', color: gradFill(350, 480), out: nxt - .5 });
+  });
+  const k = t < 5.4 ? 1 - E.out3(P(t, 4.6, 4.85)) : E.out3(P(t, 5.4, 5.65));
+  const tOpen = E.outExpo(P(t, 7.0, 7.2)) * (1 - P(t, 8.3, 8.4)), mOpen = E.outExpo(P(t, 9.2, 9.4)) * (1 - P(t, 10.1, 10.2));
+  ctx.save(); ctx.translate(px, py); ctx.scale(S, S); ctx.globalAlpha = pIn;
+  ctx.shadowColor = 'rgba(61,214,176,.2)'; ctx.shadowBlur = 90; rrect(0, 0, 360, 280, 18, '#0E141A'); ctx.shadowColor = 'transparent';
+  settingsCard({ on: k > .5, k, trig: t < 8.3 ? 'Drag or double-click' : 'Double-click', min: t < 10.1 ? '2 characters' : '5 characters', hot: tOpen > 0 ? 0 : mOpen > 0 ? 1 : -1 });
+  dropdown(122, ['Drag or double-click', 'Drag', 'Double-click'], t >= 7.85 ? 2 : -1, tOpen);
+  dropdown(174, ['1 character', '2 characters', '3 characters', '5 characters'], t >= 9.9 ? 3 : -1, mOpen);
+  ctx.restore();
+  const [cx, cy] = follow(t, SW_PATH), sx = px + cx * S, sy = py + cy * S;
+  [4.6, 5.4, 7.0, 8.3, 9.2, 10.1].forEach(at => ripple(sx, sy, t, at));
+  arrowCursor(sx, sy, 1.4, P(t, 3.5, 3.7) * (1 - P(t, 10.7, 10.9)));
+}
+function filmSettings(T) { if (T < 3.0) trayMacro(T); else if (T < 11.0) settingsHero(T); else endCard(T - 11.0); }
+
+// ---------------------------------------------------------------- master
+const FILMS = {
+  'film-introducing': { dur: 23, fps: 60, draw: filmIntro, clean: true, dips: INTRO_AT.slice(1) },
+  'film-action': { dur: 11.4, fps: 60, draw: filmAction, clean: true, dips: [7.4] },
+  'film-settings': { dur: 14.8, fps: 60, draw: filmSettings, clean: true, dips: [3.0, 11.0] },
+};
+const params = new URLSearchParams(location.search), name = params.get('clip') || 'film-introducing', clip = FILMS[name];
+
+function render(T, frame) {
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; ctx.filter = 'none';
+  clip.draw(T);
+  finishFrame(T, frame, clip);
+}
+
+const ready = Promise.all([document.fonts.load(`700 100px "Space Grotesk"`), document.fonts.load(`500 100px "Space Grotesk"`),
+  document.fonts.load(`400 30px "JetBrains Mono"`), document.fonts.load(`700 30px "JetBrains Mono"`),
+  document.fonts.load(`700 100px "Inter"`), document.fonts.load(`600 100px "Inter"`), document.fonts.load(`500 100px "Inter"`)]).then(() => document.fonts.ready);
+window.CLIPS = Object.fromEntries(Object.entries(FILMS).map(([k, v]) => [k, { dur: v.dur, fps: v.fps }]));
+window.renderAt = (T, f) => render(T, f);
+window.READY = ready.then(() => true);
+if (!params.has('render')) ready.then(() => { const t0 = performance.now();
+  const loop = () => { render(((performance.now() - t0) / 1000) % clip.dur, Math.floor((performance.now() - t0) / 16)); requestAnimationFrame(loop); }; loop(); });
+</script>
+</body>
+</html>
