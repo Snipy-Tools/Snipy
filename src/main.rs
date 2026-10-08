@@ -1,3 +1,6 @@
+#![windows_subsystem = "windows"]
+
+mod autostart;
 mod popup;
 mod tray;
 mod selection;
@@ -8,14 +11,18 @@ use toast::Toast;
 use tao::event::Event;
 use tao::event_loop::{ControlFlow, EventLoopBuilder};
 use tray::{Tray, UserEvent};
+use wry::WebContext;
 
 fn main() {
+    let data_dir = std::env::var_os("LOCALAPPDATA").map(|p| std::path::PathBuf::from(p).join("Snipy"));
+    let mut web_context = WebContext::new(data_dir);
+
     let event_loop = EventLoopBuilder::<UserEvent>::with_user_event().build();
 
     let tray = Tray::new(&event_loop);
     let settings = selection::start(event_loop.create_proxy());
-    let mut popup = Popup::new(&event_loop, settings);
-    let mut toast = Toast::new(&event_loop);
+    let mut popup = Popup::new(&event_loop, &mut web_context, settings);
+    let mut toast = Toast::new(&event_loop, &mut web_context);
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;

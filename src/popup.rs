@@ -7,7 +7,7 @@ use tao::event::WindowEvent;
 use tao::event_loop::EventLoopWindowTarget;
 use tao::platform::windows::WindowBuilderExtWindows;
 use tao::window::{Window, WindowBuilder};
-use wry::{WebView, WebViewBuilder};
+use wry::{WebContext, WebView, WebViewBuilder};
 
 const SIZE: LogicalSize<f64> = LogicalSize::new(360.0, 280.0);
 const MARGIN: f64 = 12.0;
@@ -33,7 +33,7 @@ pub struct Popup {
 }
 
 impl Popup {
-    pub fn new<T>(target: &EventLoopWindowTarget<T>, settings: Arc<Settings>) -> Self {
+    pub fn new<T>(target: &EventLoopWindowTarget<T>, context: &mut WebContext, settings: Arc<Settings>) -> Self {
         let window = WindowBuilder::new()
             .with_decorations(false)
             .with_always_on_top(true)
@@ -48,7 +48,7 @@ impl Popup {
             .replace("{{LOGO}}", &svg_data_uri(include_str!("./assets/snipy.svg")));
 
         let ipc_settings = Arc::clone(&settings);
-        let webview = WebViewBuilder::new()
+        let webview = WebViewBuilder::new_with_web_context(context)
             .with_html(html)
             .with_ipc_handler(move |req| {
                 let msg = req.body().as_str();
@@ -58,6 +58,8 @@ impl Popup {
                     ipc_settings.enabled.store(on == "true", Ordering::Relaxed);
                 } else if let Some(v) = msg.strip_prefix("trigger:").and_then(|v| v.parse().ok()) {
                     ipc_settings.trigger.store(v, Ordering::Relaxed);
+                } else if let Some(on) = msg.strip_prefix("autostart:") {
+                    crate::autostart::set(on == "true");
                 } else if let Some(v) = msg.strip_prefix("minlen:").and_then(|v| v.parse().ok()) {
                     ipc_settings.min_len.store(v, Ordering::Relaxed);
                 }
@@ -72,8 +74,9 @@ impl Popup {
         let enabled = self.settings.enabled.load(Ordering::Relaxed);
         let trigger = self.settings.trigger.load(Ordering::Relaxed);
         let minlen = self.settings.min_len.load(Ordering::Relaxed);
+        let autostart = crate::autostart::is_enabled();
         self.webview
-            .evaluate_script(&format!("render({{enabled:{enabled},trigger:{trigger},minlen:{minlen}}})"))
+            .evaluate_script(&format!("render({{enabled:{enabled},trigger:{trigger},minlen:{minlen},autostart:{autostart}}})"))
             .ok();
     }
 

@@ -3,7 +3,7 @@ use tao::dpi::{LogicalSize, PhysicalPosition};
 use tao::event_loop::EventLoopWindowTarget;
 use tao::platform::windows::WindowBuilderExtWindows;
 use tao::window::{Window, WindowBuilder};
-use wry::{WebView, WebViewBuilder};
+use wry::{WebContext, WebView, WebViewBuilder};
 
 const SIZE: LogicalSize<f64> = LogicalSize::new(110.0, 34.0);
 const OFFSET: f64 = 20.0;
@@ -16,7 +16,7 @@ pub struct Toast {
 }
 
 impl Toast {
-    pub fn new<T>(target: &EventLoopWindowTarget<T>) -> Self {
+    pub fn new<T>(target: &EventLoopWindowTarget<T>, context: &mut WebContext) -> Self {
         let window = WindowBuilder::new()
             .with_decorations(false)
             .with_transparent(true)
@@ -30,7 +30,7 @@ impl Toast {
             .expect("toast failed to build");
         window.set_ignore_cursor_events(true).ok();
 
-        let webview = WebViewBuilder::new()
+        let webview = WebViewBuilder::new_with_web_context(context)
             .with_transparent(true)
             .with_html(include_str!("./ui/toast.html"))
             .build(&window)

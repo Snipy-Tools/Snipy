@@ -110,6 +110,13 @@ select {
     font-size: 0.875rem;
     cursor: pointer;
 }
+input[type="checkbox"] {
+    color-scheme: dark;
+    accent-color: var(--accent);
+    width: 1.125rem;
+    height: 1.125rem;
+    cursor: pointer;
+}
 select:hover { border-color: var(--accent); }
 </style>
 </head>
@@ -139,6 +146,9 @@ select:hover { border-color: var(--accent); }
             <option value="5">5 characters</option>
         </select>
     </label>
+    <label class="setting">Start with Windows
+        <input type="checkbox" id="autostart">
+    </label>
     <footer>
         <button class="quit" id="quit">Quit</button>
     </footer>
@@ -152,12 +162,14 @@ const send = (msg) => window.ipc.postMessage(msg);
 
 const trigger = document.getElementById("trigger");
 const minlen = document.getElementById("minlen");
+const autostart = document.getElementById("autostart");
 
 function render(state) {
     toggle.classList.toggle("on", state.enabled);
     status.textContent = "auto-copy is " + (state.enabled ? "on" : "off");
     trigger.value = state.trigger;
     minlen.value = state.minlen;
+    autostart.checked = state.autostart;
 }
 
 toggle.addEventListener("click", () => {
@@ -168,8 +180,9 @@ toggle.addEventListener("click", () => {
 });
 trigger.addEventListener("change", () => send("trigger:" + trigger.value));
 minlen.addEventListener("change", () => send("minlen:" + minlen.value));
+autostart.addEventListener("change", () => send("autostart:" + autostart.checked));
 document.getElementById("quit").addEventListener("click", () => send("quit"));
-render({ enabled: true, trigger: 0, minlen: 1 });
+render({ enabled: true, trigger: 0, minlen: 1, autostart: false });
 </script>
 </body>
 </html>
