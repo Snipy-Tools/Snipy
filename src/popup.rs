@@ -1,4 +1,4 @@
-use crate::selection::Settings;
+use crate::selection::{Settings, Shortcut};
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
 use std::time::{Duration, Instant};
@@ -9,7 +9,7 @@ use tao::platform::windows::WindowBuilderExtWindows;
 use tao::window::{Window, WindowBuilder};
 use wry::{WebContext, WebView, WebViewBuilder};
 
-const SIZE: LogicalSize<f64> = LogicalSize::new(360.0, 280.0);
+const SIZE: LogicalSize<f64> = LogicalSize::new(360.0, 336.0);
 const MARGIN: f64 = 12.0;
 const TASKBAR: f64 = 48.0;
 
@@ -60,6 +60,8 @@ impl Popup {
                     ipc_settings.trigger.store(v, Ordering::Relaxed);
                 } else if let Some(on) = msg.strip_prefix("autostart:") {
                     crate::autostart::set(on == "true");
+                } else if let Some(shortcut) = msg.strip_prefix("shortcut:").and_then(Shortcut::parse) {
+                    *ipc_settings.shortcut.lock().unwrap() = shortcut;
                 } else if let Some(v) = msg.strip_prefix("minlen:").and_then(|v| v.parse().ok()) {
                     ipc_settings.min_len.store(v, Ordering::Relaxed);
                 }
@@ -75,9 +77,16 @@ impl Popup {
         let trigger = self.settings.trigger.load(Ordering::Relaxed);
         let minlen = self.settings.min_len.load(Ordering::Relaxed);
         let autostart = crate::autostart::is_enabled();
+        let shortcut = self.settings.shortcut.lock().unwrap().label();
         self.webview
-            .evaluate_script(&format!("render({{enabled:{enabled},trigger:{trigger},minlen:{minlen},autostart:{autostart}}})"))
+            .evaluate_script(&format!("render({{enabled:{enabled},trigger:{trigger},minlen:{minlen},autostart:{autostart},shortcut:{shortcut:?}}})"))
             .ok();
+    }
+
+    pub fn sync(&self) {
+        if self.window.is_visible() {
+            self.refresh();
+        }
     }
 
     pub fn toggle(&mut self) {

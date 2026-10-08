@@ -23,10 +23,11 @@ pub enum UserEvent {
     Tray(TrayIconEvent),
     Menu(MenuEvent),
     Copied(i32, i32),
+    Toggled(bool),
 }
 
 pub struct Tray {
-    _icon: TrayIcon,
+    icon: TrayIcon,
     quit_id: MenuId,
 }
 
@@ -54,7 +55,7 @@ impl Tray {
             .expect("icon faild to build");
 
         Self {
-            _icon: icon,
+            icon,
             quit_id: quit.id().clone(),
         }
     }
@@ -68,6 +69,10 @@ impl Tray {
             }) => popup.toggle(),
             UserEvent::Menu(e) if e.id == self.quit_id => *control_flow = ControlFlow::Exit,
             UserEvent::Copied(x, y) => toast.show(x, y),
+            UserEvent::Toggled(enabled) => {
+                self.icon.set_tooltip(Some(if enabled { "Snipy" } else { "Snipy (off)" })).ok();
+                popup.sync();
+            }
             _ => {}
         }
     }

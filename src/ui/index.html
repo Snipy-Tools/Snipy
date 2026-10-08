@@ -118,6 +118,17 @@ input[type="checkbox"] {
     cursor: pointer;
 }
 select:hover { border-color: var(--accent); }
+.shortcut {
+    background: #111917;
+    color: var(--text);
+    border: 1px solid var(--line);
+    border-radius: 0.375rem;
+    padding: 0.4375rem 0.625rem;
+    font-family: Consolas, monospace;
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+.shortcut:hover, .shortcut.recording { border-color: var(--accent); }
 </style>
 </head>
 <body>
@@ -131,6 +142,9 @@ select:hover { border-color: var(--accent); }
         </div>
         <button class="switch" id="toggle" aria-label="Toggle auto-copy"></button>
     </header>
+    <div class="setting">Toggle shortcut
+        <button class="shortcut" id="shortcut"></button>
+    </div>
     <label class="setting">Trigger
         <select id="trigger">
             <option value="0">Drag or double-click</option>
@@ -163,6 +177,8 @@ const send = (msg) => window.ipc.postMessage(msg);
 const trigger = document.getElementById("trigger");
 const minlen = document.getElementById("minlen");
 const autostart = document.getElementById("autostart");
+const shortcut = document.getElementById("shortcut");
+let shortcutLabel = "";
 
 function render(state) {
     toggle.classList.toggle("on", state.enabled);
@@ -170,7 +186,33 @@ function render(state) {
     trigger.value = state.trigger;
     minlen.value = state.minlen;
     autostart.checked = state.autostart;
+    shortcutLabel = state.shortcut;
+    stopRecording();
 }
+
+function stopRecording() {
+    shortcut.classList.remove("recording");
+    shortcut.textContent = shortcutLabel;
+}
+
+shortcut.addEventListener("click", () => {
+    shortcut.classList.add("recording");
+    shortcut.textContent = "Press keys...";
+    shortcut.focus();
+});
+shortcut.addEventListener("blur", stopRecording);
+shortcut.addEventListener("keydown", (e) => {
+    if (!shortcut.classList.contains("recording")) return;
+    e.preventDefault();
+    if (e.code === "Escape") { stopRecording(); return; }
+    if (!/^(Key[A-Z]|Digit\d|F\d+)$/.test(e.code)) return;
+    if (!e.ctrlKey && !e.altKey && !/^F\d+$/.test(e.code)) return;
+    const mods = [e.ctrlKey && "ctrl", e.altKey && "alt", e.shiftKey && "shift"].filter(Boolean);
+    const label = [...mods.map((m) => m[0].toUpperCase() + m.slice(1)), e.code.replace(/^(Key|Digit)/, "")].join("+");
+    send("shortcut:" + [...mods, e.code].join("+"));
+    shortcutLabel = label;
+    shortcut.blur();
+});
 
 toggle.addEventListener("click", () => {
     const enabled = !toggle.classList.contains("on");
@@ -182,7 +224,7 @@ trigger.addEventListener("change", () => send("trigger:" + trigger.value));
 minlen.addEventListener("change", () => send("minlen:" + minlen.value));
 autostart.addEventListener("change", () => send("autostart:" + autostart.checked));
 document.getElementById("quit").addEventListener("click", () => send("quit"));
-render({ enabled: true, trigger: 0, minlen: 1, autostart: false });
+render({ enabled: true, trigger: 0, minlen: 1, autostart: false, shortcut: "Ctrl+Alt+S" });
 </script>
 </body>
 </html>
