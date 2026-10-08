@@ -17,23 +17,11 @@ jobs:
           - os: windows-latest
             bin: snipy.exe
             asset: snipy-Windows.exe
-          - os: ubuntu-latest
-            bin: snipy
-            asset: snipy-Linux
-          - os: macos-latest
-            bin: snipy
-            asset: snipy-macOS
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
       - uses: dtolnay/rust-toolchain@stable
-
-      - name: Install Linux dependencies
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libxdo-dev libayatana-appindicator3-dev
 
       - name: Build
         run: cargo build --release
