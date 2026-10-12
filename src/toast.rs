@@ -1,7 +1,10 @@
 use std::time::{Duration, Instant};
 use tao::dpi::{LogicalSize, PhysicalPosition};
 use tao::event_loop::EventLoopWindowTarget;
+#[cfg(windows)]
 use tao::platform::windows::WindowBuilderExtWindows;
+#[cfg(target_os = "linux")]
+use tao::platform::unix::WindowBuilderExtUnix;
 use tao::window::{Window, WindowBuilder};
 use wry::{WebContext, WebView, WebViewBuilder};
 
@@ -17,17 +20,17 @@ pub struct Toast {
 
 impl Toast {
     pub fn new<T>(target: &EventLoopWindowTarget<T>, context: &mut WebContext) -> Self {
-        let window = WindowBuilder::new()
+        let builder = WindowBuilder::new()
             .with_decorations(false)
             .with_transparent(true)
             .with_always_on_top(true)
             .with_resizable(false)
-            .with_skip_taskbar(true)
             .with_focusable(false)
             .with_visible(false)
-            .with_inner_size(SIZE)
-            .build(target)
-            .expect("toast failed to build");
+            .with_inner_size(SIZE);
+        #[cfg(any(windows, target_os = "linux"))]
+        let builder = builder.with_skip_taskbar(true);
+        let window = builder.build(target).expect("toast failed to build");
         window.set_ignore_cursor_events(true).ok();
 
         let webview = WebViewBuilder::new_with_web_context(context)
@@ -41,6 +44,8 @@ impl Toast {
 
     pub fn show(&mut self, x: i32, y: i32) {
         let scale = self.window.scale_factor();
+        #[cfg(target_os = "macos")]
+        let (x, y) = ((x as f64 * scale) as i32, (y as f64 * scale) as i32);
         let width = self.window.outer_size().width as f64;
         self.window.set_outer_position(PhysicalPosition::new(
             x as f64 - width / 2.0,

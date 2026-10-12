@@ -5,7 +5,10 @@ use std::time::{Duration, Instant};
 use tao::dpi::{LogicalSize, PhysicalPosition};
 use tao::event::WindowEvent;
 use tao::event_loop::EventLoopWindowTarget;
+#[cfg(windows)]
 use tao::platform::windows::WindowBuilderExtWindows;
+#[cfg(target_os = "linux")]
+use tao::platform::unix::WindowBuilderExtUnix;
 use tao::window::{Window, WindowBuilder};
 use wry::{WebContext, WebView, WebViewBuilder};
 
@@ -34,15 +37,15 @@ pub struct Popup {
 
 impl Popup {
     pub fn new<T>(target: &EventLoopWindowTarget<T>, context: &mut WebContext, settings: Arc<Settings>) -> Self {
-        let window = WindowBuilder::new()
+        let builder = WindowBuilder::new()
             .with_decorations(false)
             .with_always_on_top(true)
             .with_resizable(false)
-            .with_skip_taskbar(true)
             .with_visible(false)
-            .with_inner_size(SIZE)
-            .build(target)
-            .expect("popup failed to build");
+            .with_inner_size(SIZE);
+        #[cfg(any(windows, target_os = "linux"))]
+        let builder = builder.with_skip_taskbar(true);
+        let window = builder.build(target).expect("popup failed to build");
 
         let html = include_str!("./ui/index.html")
             .replace("{{LOGO}}", &svg_data_uri(include_str!("./assets/snipy.svg")));

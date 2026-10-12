@@ -5,10 +5,50 @@ use std::thread::sleep;
 use std::time::{Duration, Instant};
 use rdev::{EventType, Button, Key};
 use tao::event_loop::EventLoopProxy;
+#[cfg(not(windows))]
+use std::collections::hash_map::DefaultHasher;
+#[cfg(not(windows))]
+use std::hash::{Hash, Hasher};
+use std::sync::atomic::AtomicI32;
+#[cfg(windows)]
 use windows::Win32::Foundation::POINT;
+#[cfg(windows)]
 use windows::Win32::System::DataExchange::GetClipboardSequenceNumber;
+#[cfg(windows)]
 use windows::Win32::UI::WindowsAndMessaging::GetCursorPos;
 use crate::tray::UserEvent;
+
+static CURSOR_X: AtomicI32 = AtomicI32::new(0);
+static CURSOR_Y: AtomicI32 = AtomicI32::new(0);
+
+#[cfg(windows)]
+fn cursor_pos() -> (i32, i32) {
+    let mut p = POINT::default();
+    unsafe { GetCursorPos(&mut p) }.ok();
+    (p.x, p.y)
+}
+
+#[cfg(not(windows))]
+fn cursor_pos() -> (i32, i32) {
+    (CURSOR_X.load(Ordering::Relaxed), CURSOR_Y.load(Ordering::Relaxed))
+}
+
+#[cfg(windows)]
+fn clipboard_seq() -> u64 {
+    unsafe { GetClipboardSequenceNumber() as u64 }
+}
+
+#[cfg(not(windows))]
+fn clipboard_seq() -> u64 {
+    let mut hasher = DefaultHasher::new();
+    clipboard_text().hash(&mut hasher);
+    hasher.finish()
+}
+
+#[cfg(target_os = "macos")]
+const COPY_MODIFIER: Key = Key::MetaLeft;
+#[cfg(not(target_os = "macos"))]
+const COPY_MODIFIER: Key = Key::ControlLeft;
 
 #[derive(Clone)]
 pub struct Shortcut {
@@ -94,9 +134,8 @@ pub fn start(proxy: EventLoopProxy<UserEvent>) -> Arc<Settings> {
     let toggle_proxy = proxy.clone();
     spawn(move || for _ in rx {
         if copy_selection(&simulating_clone, &copy_settings) {
-            let mut p = POINT::default();
-            unsafe { GetCursorPos(&mut p) }.ok();
-            proxy.send_event(UserEvent::Copied(p.x, p.y)).ok();
+            let (x, y) = cursor_pos();
+            proxy.send_event(UserEvent::Copied(x, y)).ok();
         }
     });
 
@@ -106,12 +145,25 @@ pub fn start(proxy: EventLoopProxy<UserEvent>) -> Arc<Settings> {
         let mut ctrl_down = false;
         let mut alt_down = false;
         let mut shift_down = false;
+        let mut select_down = false;
         let mut last_click = Instant::now() - Duration::from_secs(1);
         rdev::listen(move |e| match e.event_type {
-            EventType::MouseMove { x, y } => pos = (x, y), 
+            EventType::MouseMove { x, y } => {
+                pos = (x, y);
+                CURSOR_X.store(x as i32, Ordering::Relaxed);
+                CURSOR_Y.store(y as i32, Ordering::Relaxed);
+            }
             EventType::ButtonPress(Button::Left) => down_pos = pos,
-            EventType::KeyPress(rdev::Key::ControlLeft | rdev::Key::ControlRight) => ctrl_down = true,
-            EventType::KeyRelease(rdev::Key::ControlLeft | rdev::Key::ControlRight) => ctrl_down = false,
+            EventType::KeyPress(rdev::Key::ControlLeft | rdev::Key::ControlRight) => {
+                ctrl_down = true;
+                select_down |= !cfg!(target_os = "macos");
+            }
+            EventType::KeyRelease(rdev::Key::ControlLeft | rdev::Key::ControlRight) => {
+                ctrl_down = false;
+                select_down &= cfg!(target_os = "macos");
+            }
+            EventType::KeyPress(Key::MetaLeft | Key::MetaRight) => select_down |= cfg!(target_os = "macos"),
+            EventType::KeyRelease(Key::MetaLeft | Key::MetaRight) => select_down &= !cfg!(target_os = "macos"),
             EventType::KeyPress(Key::Alt | Key::AltGr) => alt_down = true,
             EventType::KeyRelease(Key::Alt | Key::AltGr) => alt_down = false,
             EventType::KeyPress(Key::ShiftLeft | Key::ShiftRight) => shift_down = true,
@@ -123,7 +175,7 @@ pub fn start(proxy: EventLoopProxy<UserEvent>) -> Arc<Settings> {
                 let enabled = !hook_settings.enabled.fetch_xor(true, Ordering::Relaxed);
                 toggle_proxy.send_event(UserEvent::Toggled(enabled)).ok();
             }
-            EventType::KeyPress(rdev::Key::KeyA) if ctrl_down => {
+            EventType::KeyPress(rdev::Key::KeyA) if select_down => {
                 if hook_settings.enabled.load(Ordering::Relaxed) && !simulating.load(Ordering::Relaxed) {
                     tx.send(()).ok();
             }
@@ -155,23 +207,23 @@ fn clipboard_text() -> Option<String> {
 fn copy_selection(simulating: &Arc<AtomicBool>, settings: &Settings) -> bool {
     let min_len = settings.min_len.load(Ordering::Relaxed);
     let before = if min_len > 1 { clipboard_text() } else { None };
-    let seq = unsafe { GetClipboardSequenceNumber() };
+    let seq = clipboard_seq();
     simulating.store(true, Ordering::Relaxed);
     sleep(Duration::from_millis(50));
-    rdev::simulate(&EventType::KeyPress(rdev::Key::ControlLeft)).ok();
+    rdev::simulate(&EventType::KeyPress(COPY_MODIFIER)).ok();
     sleep(Duration::from_millis(10));
     rdev::simulate(&EventType::KeyPress(rdev::Key::KeyC)).ok();
     sleep(Duration::from_millis(10));
     rdev::simulate(&EventType::KeyRelease(rdev::Key::KeyC)).ok();
     sleep(Duration::from_millis(10));
-    rdev::simulate(&EventType::KeyRelease(rdev::Key::ControlLeft)).ok();
+    rdev::simulate(&EventType::KeyRelease(COPY_MODIFIER)).ok();
 
     simulating.store(false, Ordering::Relaxed);
     let deadline = Instant::now() + Duration::from_millis(250);
-    while unsafe { GetClipboardSequenceNumber() } == seq && Instant::now() < deadline {
+    while clipboard_seq() == seq && Instant::now() < deadline {
         sleep(Duration::from_millis(5));
     }
-    if unsafe { GetClipboardSequenceNumber() } == seq {
+    if clipboard_seq() == seq {
         return false;
     }
     if let Some(before) = before {

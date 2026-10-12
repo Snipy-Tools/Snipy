@@ -29,6 +29,7 @@ pub enum UserEvent {
 pub struct Tray {
     icon: TrayIcon,
     quit_id: MenuId,
+    open_id: MenuId,
 }
 
 impl Tray {
@@ -44,6 +45,10 @@ impl Tray {
 
         let quit = MenuItem::new("Quit", true, None);
         let menu = Menu::new();
+        let open = MenuItem::new("Settings", true, None);
+        if cfg!(target_os = "linux") {
+            menu.append(&open).expect("menu settings faild to build");
+        }
         menu.append(&quit).expect("menu quit faild to build");
 
         let icon = TrayIconBuilder::new()
@@ -57,6 +62,7 @@ impl Tray {
         Self {
             icon,
             quit_id: quit.id().clone(),
+            open_id: open.id().clone(),
         }
     }
 
@@ -67,6 +73,7 @@ impl Tray {
                 button_state: MouseButtonState::Up,
                 ..
             }) => popup.toggle(),
+            UserEvent::Menu(e) if e.id == self.open_id => popup.toggle(),
             UserEvent::Menu(e) if e.id == self.quit_id => *control_flow = ControlFlow::Exit,
             UserEvent::Copied(x, y) => toast.show(x, y),
             UserEvent::Toggled(enabled) => {
